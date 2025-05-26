@@ -4,7 +4,6 @@ import org.example.backend.dto.LoginDto;
 import org.example.backend.dto.UpdateUserDto;
 import org.example.backend.dto.UserRegisterDto;
 import org.example.backend.entity.User;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 import java.util.Optional;

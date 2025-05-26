@@ -5,7 +5,6 @@ import org.example.backend.dto.GroupDataDto;
 import org.example.backend.dto.GroupDto;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.User;
-import org.example.backend.repository.GroupRepo;
 import org.example.backend.services.groupService.GroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

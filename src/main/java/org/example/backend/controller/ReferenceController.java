@@ -1,7 +1,6 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.backend.dto.LoginDto;
 import org.example.backend.dto.ReferenceDto;
 import org.example.backend.dto.ReferenceWithStatus;
 import org.example.backend.entity.Reference;
@@ -10,9 +9,7 @@ import org.example.backend.repository.ReferenceRepo;
 import org.example.backend.repository.ReferenceStatusRepo;
 import org.example.backend.services.referenceService.ReferenceService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +28,6 @@ public class ReferenceController {
     @PostMapping("/post")
     public ResponseEntity<?> postRef(@RequestBody ReferenceDto referenceDto) {
         try {
-            // 1. Reference obyektini yaratish va bazaga saqlash
             Reference reference = new Reference();
             reference.setName(referenceDto.getName());
             reference.setPhone(referenceDto.getPhone());

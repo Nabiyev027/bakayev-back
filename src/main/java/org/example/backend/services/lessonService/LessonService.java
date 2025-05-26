@@ -2,7 +2,6 @@ package org.example.backend.services.lessonService;
 
 import org.example.backend.entity.Lesson;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
