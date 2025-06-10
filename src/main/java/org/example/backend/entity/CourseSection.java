@@ -1,12 +1,11 @@
 package org.example.backend.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.backend.Enum.Lang;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "course_section")
@@ -18,13 +17,11 @@ public class CourseSection {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @NotBlank
-    @Column(nullable = false)
-    private String title;
+    @OneToMany(mappedBy = "courseSection", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<CourseCard> courseCards;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Lang language; // UZ, RU, EN
+    @OneToMany(mappedBy = "courseSection", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<CourseSectionTranslation> translations;
 
 
 }
