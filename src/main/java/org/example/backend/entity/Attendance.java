@@ -26,5 +26,7 @@ public class Attendance {
     private User student;
     @ManyToOne(fetch = FetchType.EAGER)
     private Group group;
+    @ManyToOne(fetch = FetchType.EAGER)
+    private User teacher;
 
 }
