@@ -27,7 +27,7 @@ public class CourseSectionTranslation {
     @Column(nullable = false)
     private Lang language; // UZ, RU, EN
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "course_section_id", nullable = false)
     private CourseSection courseSection;
 

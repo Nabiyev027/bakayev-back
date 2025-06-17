@@ -28,7 +28,6 @@ import java.util.List;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final UserRepo userRepo;
     private final Filter filter;
 
     @Bean
@@ -40,28 +39,16 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
                                 .requestMatchers("/auth/login").permitAll()
                                 .requestMatchers("/reference/post").permitAll()
                                 .requestMatchers("/reference").permitAll()
-                                .requestMatchers("/courseSection/**").permitAll()
-                                .requestMatchers("/courseCard/**").permitAll()
-                                .requestMatchers("/cardSkill/**").permitAll()
+                                .requestMatchers("/filial/get").permitAll()
                                 .anyRequest().authenticated()
                 ).addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
 
         return httpSecurity.build();
     }
-    @Bean
-    public UserDetailsService inMemoryUsers(){
-        return username -> {
-            User user = userRepo.findByUsername(username).get();
-            return new org.springframework.security.core.userdetails
-                    .User(user.getUsername(),user.getPassword(), List.of());
-        };
-    }
+
     @Bean
     public BCryptPasswordEncoder encoder(){
         return new BCryptPasswordEncoder();
     }
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception{
-        return configuration.getAuthenticationManager();
-    }
+
 }

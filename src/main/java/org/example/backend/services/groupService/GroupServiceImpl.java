@@ -3,6 +3,7 @@ package org.example.backend.services.groupService;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.GroupDataDto;
 import org.example.backend.dto.GroupDto;
+import org.example.backend.dtoResponse.GroupsNamesDto;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.Room;
 import org.example.backend.entity.User;
@@ -10,6 +11,7 @@ import org.example.backend.repository.GroupRepo;
 import org.example.backend.repository.RoomRepo;
 import org.example.backend.repository.UserRepo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -94,6 +96,21 @@ public class GroupServiceImpl implements GroupService{
     }
 
     @Override
+    @Transactional
+    public List<GroupsNamesDto> getGroupsNames() {
+        List<Group> all = groupRepo.findAll();
+        List<GroupsNamesDto> groupsNamesDtoList = new ArrayList<>();
+        for (Group group : all) {
+            GroupsNamesDto groupsNamesDto = new GroupsNamesDto();
+            groupsNamesDto.setId(group.getId());
+            groupsNamesDto.setName(group.getName());
+            groupsNamesDtoList.add(groupsNamesDto);
+        }
+
+        return groupsNamesDtoList;
+    }
+
+    @Override
     public void deleteGroup(UUID id) {
         groupRepo.deleteById(id);
     }
@@ -107,5 +124,7 @@ public class GroupServiceImpl implements GroupService{
     public List<User> getStudents(UUID groupId) {
         return userRepo.getByGroupId(groupId);
     }
+
+
 
 }

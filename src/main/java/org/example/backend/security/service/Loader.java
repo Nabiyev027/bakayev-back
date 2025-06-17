@@ -61,26 +61,6 @@ public class Loader implements CommandLineRunner {
             userRepo.save(userT);
 
 
-            Role roleStudent = roleRepo.findByName("ROLE_STUDENT").orElseThrow();
-            User userS1 = new User();
-            userS1.setFirstName("Aliyev");
-            userS1.setLastName("Valijon");
-            userS1.setPhone("+998 91 442 00 31");
-            userS1.setUsername("aliyev");
-            userS1.setPassword(passwordEncoder.encode("123"));
-            userS1.setRoles(List.of(roleStudent));
-            userRepo.save(userS1);
-
-            User userS2 = new User();
-            userS2.setFirstName("Karimov");
-            userS2.setLastName("Axmed");
-            userS2.setPhone("+998 91 442 00 31");
-            userS2.setUsername("karimov");
-            userS2.setPassword(passwordEncoder.encode("123"));
-            userS2.setRoles(List.of(roleStudent));
-            userRepo.save(userS2);
-
-
         }
 
     }

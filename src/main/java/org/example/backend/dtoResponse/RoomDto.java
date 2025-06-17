@@ -5,8 +5,8 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class CardSkillDto {
+public class RoomDto {
     private UUID id;
-    private String title;
-    
+    private String name;
+    private Integer number;
 }

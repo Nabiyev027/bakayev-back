@@ -1,11 +1,13 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dtoResponse.FilialDto;
 import org.example.backend.entity.Filial;
 import org.example.backend.services.filialService.FilialService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,10 +20,11 @@ public class FilialController {
 
     private final FilialService filialService;
 
-    @GetMapping
+
+    @GetMapping("/get")
     public ResponseEntity<?> getFilial() {
         try {
-            List<Filial> filials = filialService.getFilials();
+            List<FilialDto> filials = filialService.getFilials();
             return ResponseEntity.ok(filials);
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -29,19 +32,21 @@ public class FilialController {
     }
 
     @PostMapping
-    public ResponseEntity<?> addFilial(@RequestBody Filial filial) {
+    public ResponseEntity<?> addFilial(@RequestParam("name") String name, @RequestParam("description") String description,
+                                       @RequestParam("location") String location, @RequestParam("image") MultipartFile image) {
         try {
-            filialService.createFilial(filial);
+            filialService.createFilial(name,description,location,image);
             return ResponseEntity.ok("Filial added successfully");
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateFilial(@PathVariable UUID id, @RequestBody Filial filial) {
+    @PutMapping("/update")
+    public ResponseEntity<?> updateFilial(@RequestParam String id, @RequestParam("name") String name, @RequestParam("description") String description,
+                                          @RequestParam("location") String location, @RequestParam("image") MultipartFile image) {
         try {
-            filialService.updateFilial(id, filial);
+            filialService.updateFilial(id, name,description,location,image);
             return ResponseEntity.ok("Successfully updated");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

@@ -3,6 +3,7 @@ package org.example.backend.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.GroupDataDto;
 import org.example.backend.dto.GroupDto;
+import org.example.backend.dtoResponse.GroupsNamesDto;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.User;
 import org.example.backend.services.groupService.GroupService;
@@ -43,6 +44,16 @@ public class GroupController {
     public ResponseEntity<?> getGroups() {
         try {
             List<Group> groups = groupService.getAllGroups();
+            return  ResponseEntity.ok(groups);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/getNames")
+    public ResponseEntity<?> getGroupsNames() {
+        try {
+            List<GroupsNamesDto> groups = groupService.getGroupsNames();
             return  ResponseEntity.ok(groups);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());

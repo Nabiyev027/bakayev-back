@@ -1,10 +1,7 @@
 package org.example.backend.controller;
-
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.example.backend.entity.Room;
+import org.example.backend.dtoResponse.RoomDto;
 import org.example.backend.services.roomService.RoomService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +18,7 @@ public class RoomController {
     @GetMapping
     public ResponseEntity<?> getAllRooms() {
         try {
-            List<Room> rooms = roomService.getRooms();
+            List<RoomDto> rooms = roomService.getRooms();
             return ResponseEntity.ok(rooms);
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -29,9 +26,9 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody String name, @RequestBody Integer number) {
+    public ResponseEntity<?> create(@RequestBody String name, @RequestBody Integer number, @RequestBody String filialId) {
         try {
-            roomService.createRoom(name, number);
+            roomService.createRoom(name, number,filialId);
             return ResponseEntity.ok("Room created successfully");
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -53,8 +50,6 @@ public class RoomController {
         try {
             roomService.deleteRoom(id);
             return ResponseEntity.ok("Room deleted successfully");
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Something went wrong");
         }

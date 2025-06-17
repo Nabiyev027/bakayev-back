@@ -2,9 +2,7 @@ package org.example.backend.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -22,6 +20,7 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
     @NotBlank
     private String firstName;
     @NotBlank
@@ -37,7 +36,9 @@ public class User implements UserDetails {
 
     private String imageUrl;
 
-    @OneToMany(mappedBy = "receptionist") // `ReferenceStatus` ichidagi `receptionist` maydoni bilan bog‘lanadi
+    @OneToMany(mappedBy = "receptionist")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Set<ReferenceStatus> referenceStatuses;
 
     @ManyToMany(fetch = FetchType.EAGER)
@@ -49,7 +50,13 @@ public class User implements UserDetails {
     @ManyToMany(mappedBy = "teachers")
     private List<Group> teacherGroups;
 
-
+    @ManyToMany
+    @JoinTable(
+            name = "user_filial",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "filial_id")
+    )
+    private List<Filial> filials;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -64,25 +71,12 @@ public class User implements UserDetails {
     public String getPassword() {
         return password;
     }
-
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
+    public boolean isAccountNonExpired() { return true; }
     @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
+    public boolean isAccountNonLocked() { return true; }
     @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
+    public boolean isCredentialsNonExpired() { return true; }
     @Override
-    public boolean isEnabled() {
-        return true;
-    }
-
+    public boolean isEnabled() { return true; }
 }

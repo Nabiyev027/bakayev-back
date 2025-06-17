@@ -3,10 +3,7 @@ package org.example.backend.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.UUID;
 
@@ -14,7 +11,6 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class Reference {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -30,6 +26,7 @@ public class Reference {
 
 
     @OneToOne(mappedBy = "reference", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private ReferenceStatus referenceStatus;
 }

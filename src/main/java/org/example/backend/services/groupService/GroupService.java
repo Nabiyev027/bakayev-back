@@ -2,6 +2,7 @@ package org.example.backend.services.groupService;
 
 import org.example.backend.dto.GroupDataDto;
 import org.example.backend.dto.GroupDto;
+import org.example.backend.dtoResponse.GroupsNamesDto;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.User;
 
@@ -20,4 +21,6 @@ public interface GroupService {
     List<Group> getAllGroups();
 
     List<User> getStudents(UUID groupId);
+
+    List<GroupsNamesDto> getGroupsNames();
 }

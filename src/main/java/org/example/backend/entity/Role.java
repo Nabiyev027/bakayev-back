@@ -1,9 +1,6 @@
 package org.example.backend.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "roles")
@@ -29,4 +27,5 @@ public class Role implements GrantedAuthority {
     public String getAuthority() {
         return name;
     }
+
 }

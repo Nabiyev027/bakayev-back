@@ -1,5 +1,6 @@
 package org.example.backend.services.courseService;
 
+import org.example.backend.dtoResponse.CourseSectionWithCardDto;
 import org.example.backend.entity.CourseSection;
 
 import java.util.List;
@@ -10,7 +11,7 @@ public interface CourseService {
 
     void editCourse(UUID id, String title, String lang);
 
-    List<CourseSection> getAllCourses();
-
     void delete(UUID id);
+
+    List<CourseSectionWithCardDto> getAllCoursesWithCard(String lang);
 }
