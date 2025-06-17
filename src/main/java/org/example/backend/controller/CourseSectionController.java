@@ -1,7 +1,7 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.backend.entity.CourseSection;
+import org.example.backend.dtoResponse.CourseSectionWithCardDto;
 import org.example.backend.services.courseService.CourseService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +18,10 @@ public class CourseSectionController {
     private final CourseService courseService;
 
     @GetMapping("/getAll")
-    public ResponseEntity<?> getCourse() {
+    public ResponseEntity<?> getCourseWithCard(@RequestParam String lang) {
         try {
-            List<CourseSection> allCourses = courseService.getAllCourses();
+            List<CourseSectionWithCardDto> allCourses = courseService.getAllCoursesWithCard(lang);
+            System.out.printf("getCourseWithCard: %s\n", allCourses );
             return ResponseEntity.ok(allCourses);
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

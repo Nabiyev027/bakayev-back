@@ -15,10 +15,12 @@ import org.example.backend.repository.UserRepo;
 import org.example.backend.security.service.JwtService;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -37,63 +39,76 @@ public class UserServiceImpl implements UserService {
     private final DiscountRepo discountRepo;
 
     @Override
+    @Transactional
     public Optional<User> register(UserRegisterDto dto) {
 
         Optional<User> user = userRepo.findById(dto.getUserId());
 
-        if (user.isPresent()) {
-            if (user.get().getRoles().contains("ROLE_RECEPTION")) {
-                Optional<Role> roleUser = roleRepo.findByName("ROLE_STUDENT");
-                User userNew=new User();
-                userNew.setFirstName(dto.getFirstName());
-                userNew.setLastName(dto.getLastName());
-                userNew.setUsername(dto.getUsername());
-                userNew.setPhone(dto.getPhone());
-                userNew.setParentPhone(dto.getParentPhone());
-                userNew.setPassword(passwordEncoder.encode(dto.getPassword()));
-                String imgPath = createImage(dto.getImg());
-                userNew.setImageUrl(imgPath);
-                userNew.setRoles(List.of(roleUser.get()));
-                if(dto.getGroupId()!=null) {
-                    Group group = groupRepo.findById(dto.getGroupId()).get();
-                    userNew.setStudentGroups(List.of(group));
-                }
-                User save = userRepo.save(userNew);
-                if(dto.getDiscount()!=null || dto.getDiscount()!=0) {
-                    Discount discount = new Discount();
-                    discount.setQuantity(dto.getDiscount());
-                    discount.setTitle(dto.getDiscountTitle());
-                    discount.setStudent(save);
-                }
+        if (user.isEmpty()) {
+            return Optional.empty(); // foydalanuvchi topilmagan
+        }
 
-                return Optional.of(save);
+        User foundUser = user.get();
 
-            } else if (user.get().getRoles().contains("ROLE_ADMIN")) {
-                Optional<Role> roleUser = roleRepo.findByName("ROLE_RECEPTION");
-                User userNew=new User();
-                userNew.setFirstName(dto.getFirstName());
-                userNew.setLastName(dto.getLastName());
-                userNew.setUsername(dto.getUsername());
-                userNew.setPhone(dto.getPhone());
-                userNew.setParentPhone(dto.getParentPhone());
-                userNew.setPassword(passwordEncoder.encode(dto.getPassword()));
-                String imgPath = createImage(dto.getImg());
-                userNew.setImageUrl(imgPath);
-                userNew.setRoles(List.of(roleUser.get()));
-                if(dto.getGroupId()!=null) {
-                    Group group = groupRepo.findById(dto.getGroupId()).get();
-                    userNew.setStudentGroups(List.of(group));
-                }
+        if (hasRole(foundUser.getRoles(), "ROLE_RECEPTION")) {
+            Optional<Role> roleUser = roleRepo.findByName("ROLE_STUDENT");
+            if (roleUser.isEmpty()) return Optional.empty(); // rol topilmasa
 
-                User save = userRepo.save(userNew);
-                return Optional.of(save);
+            User userNew = new User();
+            userNew.setFirstName(dto.getFirstName());
+            userNew.setLastName(dto.getLastName());
+            userNew.setUsername(dto.getUsername());
+            userNew.setPhone(dto.getPhone());
+            userNew.setParentPhone(dto.getParentPhone());
+            userNew.setPassword(passwordEncoder.encode(dto.getPassword()));
+//            String imgPath = createImage(dto.getImg());
+//            userNew.setImageUrl(imgPath);
+            userNew.setRoles(List.of(roleUser.get()));
+
+            if (dto.getGroupId() != null) {
+                groupRepo.findById(dto.getGroupId()).ifPresent(group -> userNew.setStudentGroups(List.of(group)));
             }
+
+            User save = userRepo.save(userNew);
+
+            if (dto.getDiscount() != null && dto.getDiscount() != 0) {
+                Discount discount = new Discount();
+                discount.setQuantity(dto.getDiscount());
+                discount.setTitle(dto.getDiscountTitle());
+                discount.setStudent(save);
+                // discountRepo.save(discount); ← agar kerak bo‘lsa saqlashni unutmang
+            }
+
+            return Optional.of(save);
+
+
+
+        } else if (hasRole(foundUser.getRoles(), "ROLE_STUDENT")) {
+            Optional<Role> roleUser = roleRepo.findByName("ROLE_RECEPTION");
+            if (roleUser.isEmpty()) return Optional.empty();
+
+            User userNew = new User();
+            userNew.setFirstName(dto.getFirstName());
+            userNew.setLastName(dto.getLastName());
+            userNew.setUsername(dto.getUsername());
+            userNew.setPhone(dto.getPhone());
+            userNew.setParentPhone(dto.getParentPhone());
+            userNew.setPassword(passwordEncoder.encode(dto.getPassword()));
+            String imgPath = createImage(dto.getImg());
+            userNew.setImageUrl(imgPath);
+            userNew.setRoles(List.of(roleUser.get()));
+
+            if (dto.getGroupId() != null) {
+                groupRepo.findById(dto.getGroupId()).ifPresent(group -> userNew.setStudentGroups(List.of(group)));
+            }
+
+            User save = userRepo.save(userNew);
+            return Optional.of(save);
         }
 
         return Optional.empty();
-
-
     }
+
 
     @Override
     public void updateUser(UUID id, UpdateUserDto updateUserDto) {
@@ -130,6 +145,12 @@ public class UserServiceImpl implements UserService {
 
     }
 
+    @Override
+    public List<Role> getRoles() {
+        List<Role> all = roleRepo.findAll();
+        return all;
+    }
+
 
     @Override
     public User getUserByUsername(String username){
@@ -141,14 +162,14 @@ public class UserServiceImpl implements UserService {
     public Map<?, ?> login(LoginDto loginDto){
         User user = userRepo.findByUsername(loginDto.getUsername()).orElseThrow();
         UUID id = user.getId();
-        authenticationManager.authenticate(
+        Authentication authenticate = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginDto.getUsername(),
                         loginDto.getPassword()
                 )
         );
-        String jwt = jwtService.generateJwt(id.toString());
-        String refreshJwt = jwtService.generateRefreshJwt(id.toString());
+        String jwt = jwtService.generateJwt(id.toString(),authenticate);
+        String refreshJwt = jwtService.generateRefreshJwt(id.toString(),authenticate);
         Map<String, String> tokens = new HashMap<>();
         tokens.put("access_token", jwt);
         tokens.put("refresh_token", refreshJwt);
@@ -222,6 +243,10 @@ public class UserServiceImpl implements UserService {
         } catch (IOException e) {
             throw new RuntimeException("Failed to store video: " + video.getOriginalFilename(), e);
         }
+    }
+
+    private boolean hasRole(List<Role> roles, String authority) {
+       return roles.stream().filter(role -> role.getName().equals(authority)).toList().size()>0;
     }
 
 }

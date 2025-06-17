@@ -8,6 +8,6 @@ public enum Lang {
 
     @Override
     public String toString() {
-        return name().toLowerCase(); // en, uz, ru
+        return name(); // en, uz, ru
     }
 }

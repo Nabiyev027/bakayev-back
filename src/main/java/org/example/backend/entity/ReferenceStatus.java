@@ -1,10 +1,7 @@
 package org.example.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -13,7 +10,6 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class ReferenceStatus {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -25,6 +21,8 @@ public class ReferenceStatus {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receptionId", nullable = true)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User receptionist;
 
     private boolean status;

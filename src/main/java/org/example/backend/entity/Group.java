@@ -17,7 +17,6 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class Group {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

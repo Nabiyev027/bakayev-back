@@ -3,12 +3,14 @@ package org.example.backend.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.UpdateUserDto;
 import org.example.backend.dto.UserReception;
+import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
 import org.example.backend.repository.UserRepo;
 import org.example.backend.services.userService.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -18,6 +20,16 @@ import java.util.UUID;
 public class UserController {
     private final UserService userService;
     private final UserRepo userRepo;
+
+    @GetMapping("getRoles")
+    public ResponseEntity<?> getRoles() {
+        try {
+            List<Role> roles = userService.getRoles();
+            return ResponseEntity.ok(roles);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable UUID id) {

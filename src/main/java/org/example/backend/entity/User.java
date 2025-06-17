@@ -2,9 +2,7 @@ package org.example.backend.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -37,7 +35,9 @@ public class User implements UserDetails {
 
     private String imageUrl;
 
-    @OneToMany(mappedBy = "receptionist") // `ReferenceStatus` ichidagi `receptionist` maydoni bilan bog‘lanadi
+    @OneToMany(mappedBy = "receptionist")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Set<ReferenceStatus> referenceStatuses;
 
     @ManyToMany(fetch = FetchType.EAGER)
