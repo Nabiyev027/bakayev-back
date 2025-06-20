@@ -1,6 +1,8 @@
 package org.example.backend.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,14 +15,27 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Filial {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @NotBlank
     private String name;
+
+    @NotBlank
     private String description;
+
+    @NotBlank
     private String location;
 
-    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinColumn(name = "filial_id")
-    private List<Room> room;
+    @NotBlank
+    private String imageUrl;
+
+    @OneToMany(mappedBy = "filial", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Room> rooms;
+
+    @ManyToMany(mappedBy = "filials")
+    private List<User> users;
 }
+

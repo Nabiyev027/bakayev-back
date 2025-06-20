@@ -18,7 +18,7 @@ public class Discount {
     private UUID id;
     @NotBlank
     private String title;
-    private double quantity;
+    private Integer quantity;
     @ManyToOne(fetch = FetchType.EAGER)
     private User student;
 }

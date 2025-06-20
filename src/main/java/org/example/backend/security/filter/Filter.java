@@ -34,7 +34,8 @@ public class Filter extends OncePerRequestFilter {
             Jws<Claims> claimsJws = jwtService.extractJwt(authorization);
             Claims user = claimsJws.getPayload();
             String id = user.getSubject();
-            User user1 = userRepo.findById(UUID.fromString(id)).get();
+
+            User user1 = userRepo.findById(UUID.fromString(id)).orElseThrow();
             UsernamePasswordAuthenticationToken usn = new UsernamePasswordAuthenticationToken(
                     user1.getUsername(),
                     user1.getPassword(),

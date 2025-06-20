@@ -21,7 +21,7 @@ public interface UserService {
 
     void changeLoginPassword(UUID id,String oldPassword, String newPassword);
 
-    Optional<User> register(String firstName, String lastName, String phone, String parentPhone, String username, String password, String groupId, String role, double discount, String discountTitle, MultipartFile image);
+    Optional<User> register(String firstName, String lastName, String phone, String parentPhone, String username, String password, String groupId, String role, Integer discount, String discountTitle, MultipartFile image);
 
     void updateUser(UUID id, UpdateUserDto updateUserDto);
 
