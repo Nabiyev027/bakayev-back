@@ -1,10 +1,9 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.backend.dto.GroupDataDto;
 import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.GroupsNamesDto;
-import org.example.backend.entity.Group;
+import org.example.backend.dtoResponse.GroupsResDto;
 import org.example.backend.entity.User;
 import org.example.backend.services.groupService.GroupService;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +19,10 @@ import java.util.UUID;
 public class GroupController {
     private final GroupService groupService;
 
-    @GetMapping("/groupStudents")
+    @GetMapping("/getAll")
     public ResponseEntity<?> getAllGroups() {
         try {
-            List<GroupDataDto> groups =  groupService.getGroupsWithData();
+            List<GroupsResDto> groups =  groupService.getGroupsWithData();
             return  ResponseEntity.ok(groups);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -40,16 +39,6 @@ public class GroupController {
         }
     }
 
-    @GetMapping("/get")
-    public ResponseEntity<?> getGroups() {
-        try {
-            List<Group> groups = groupService.getAllGroups();
-            return  ResponseEntity.ok(groups);
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
     @GetMapping("/getNames")
     public ResponseEntity<?> getGroupsNames() {
         try {
@@ -61,9 +50,9 @@ public class GroupController {
     }
 
     @PostMapping
-    public ResponseEntity<?> postGroup(@RequestBody GroupDto group) {
+    public ResponseEntity<?> postGroup(@RequestBody GroupDto groupDto) {
         try {
-            groupService.createGroup(group);
+            groupService.createGroup(groupDto);
             return ResponseEntity.ok("Group created successfully");
         } catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -71,9 +60,9 @@ public class GroupController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> editGroup(@PathVariable UUID id, @RequestBody GroupDto group) {
+    public ResponseEntity<?> editGroup(@PathVariable UUID id, @RequestBody GroupDto groupDto) {
         try {
-            groupService.updateGroup(id,group);
+            groupService.updateGroup(id,groupDto);
             return ResponseEntity.ok("Group updated successfully");
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());

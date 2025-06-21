@@ -1,12 +1,16 @@
 package org.example.backend.services.groupService;
 
 import lombok.RequiredArgsConstructor;
-import org.example.backend.dto.GroupDataDto;
 import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.GroupsNamesDto;
+import org.example.backend.dtoResponse.GroupsResDto;
+import org.example.backend.dtoResponse.RoomDto;
+import org.example.backend.dtoResponse.TeacherNameDto;
+import org.example.backend.entity.Filial;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.Room;
 import org.example.backend.entity.User;
+import org.example.backend.repository.FilialRepo;
 import org.example.backend.repository.GroupRepo;
 import org.example.backend.repository.RoomRepo;
 import org.example.backend.repository.UserRepo;
@@ -24,46 +28,67 @@ public class GroupServiceImpl implements GroupService{
     private final GroupRepo groupRepo;
     private final RoomRepo roomRepo;
     private final UserRepo userRepo;
+    private final FilialRepo filialRepo;
 
     @Override
-    public List<GroupDataDto> getGroupsWithData() {
-        List<GroupDataDto> groupDataDtoList = new ArrayList<>();
+    public List<GroupsResDto> getGroupsWithData() {
+        List<GroupsResDto> groupsResDtos = new ArrayList<>();
         List<Group> all = groupRepo.findAll();
 
         for (Group group : all) {
-            GroupDataDto groupDataDto = new GroupDataDto();
-            groupDataDto.setName(group.getName());
-            groupDataDto.setDegree(group.getDegree());
-            groupDataDto.setRoomNumName(group.getRoom().getNumber() + " " + group.getRoom().getName());
-            groupDataDto.setLessonTime(group.getStartTime() + "-" + group.getEndTime());
+            GroupsResDto newGroup = new GroupsResDto();
+            newGroup.setName(group.getName());
+            newGroup.setDegree(group.getDegree());
+
+            Room room = roomRepo.findById(group.getId()).get();
+            RoomDto roomDto = new RoomDto();
+            roomDto.setId(room.getId());
+            roomDto.setName(room.getName());
+            roomDto.setNumber(room.getNumber());
+            newGroup.setRoomDto(roomDto);
+
+            newGroup.setStartTime(group.getStartTime());
+            newGroup.setEndTime(group.getEndTime());
 
             List<User> students = group.getStudents();
-            groupDataDto.setStudentNumber(students.size());
+            newGroup.setStudentsNumber(students.size());
+            List<TeacherNameDto> teacherNameDtoList = new ArrayList<>();
+            List<User> teachers = group.getTeachers();
+            for (User teacher : teachers) {
+                TeacherNameDto teacherNameDto = new TeacherNameDto();
+                teacherNameDto.setId(teacher.getId());
+                teacherNameDto.setName(teacher.getFirstName() + " " + teacher.getLastName());
+            }
+            newGroup.setTeacherNameDtos(teacherNameDtoList);
+            Filial filial = group.getFilial();
+            newGroup.setFilialName(filial.getName());
 
-            // Teacherlarni o‘rnatish
-            groupDataDto.setTeachers(group.getTeachers());
-
-            groupDataDtoList.add(groupDataDto);
+            groupsResDtos.add(newGroup);
         }
 
-        return groupDataDtoList;
+        return groupsResDtos;
     }
 
     @Override
-    public void createGroup(GroupDto group) {
+    public void createGroup(GroupDto groupDto) {
         Group newGroup = new Group();
-        newGroup.setName(group.getName());
-        newGroup.setDegree(group.getDegree());
-        newGroup.setStartTime(group.getStartTime());
-        newGroup.setEndTime(group.getEndTime());
+        newGroup.setName(groupDto.getName());
+        newGroup.setDegree(groupDto.getDegree());
+        newGroup.setStartTime(groupDto.getStartTime());
+        newGroup.setEndTime(groupDto.getEndTime());
 
         // Room o‘rnatish
-        Room room = roomRepo.findById(group.getRoomId())
+        Room room = roomRepo.findById(groupDto.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Room not found"));
         newGroup.setRoom(room);
 
+        // Filial o‘rnatish (agar kerak bo‘lsa)
+        Filial filial = filialRepo.findById(groupDto.getFilialId())
+                .orElseThrow(() -> new RuntimeException("Filial not found"));
+        newGroup.setFilial(filial);
+
         // Teachersni topish va o‘rnatish
-        List<User> teachers = group.getTeachersId().stream()
+        List<User> teachers = groupDto.getTeacherIds().stream()
                 .map(id -> userRepo.findById(id)
                         .orElseThrow(() -> new RuntimeException("Teacher not found: " + id)))
                 .collect(Collectors.toList());
@@ -73,20 +98,25 @@ public class GroupServiceImpl implements GroupService{
     }
 
     @Override
-    public void updateGroup(UUID id, GroupDto group) {
+    public void updateGroup(UUID id, GroupDto groupDto) {
         Group group1 = groupRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
 
-        group1.setName(group.getName());
-        group1.setDegree(group.getDegree());
-        group1.setStartTime(group.getStartTime());
-        group1.setEndTime(group.getEndTime());
+        group1.setName(groupDto.getName());
+        group1.setDegree(groupDto.getDegree());
+        group1.setStartTime(groupDto.getStartTime());
+        group1.setEndTime(groupDto.getEndTime());
 
-        Room room = roomRepo.findById(group.getRoomId())
+        Room room = roomRepo.findById(groupDto.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Room not found"));
         group1.setRoom(room);
 
-        List<User> teachers = group.getTeachersId().stream()
+        // Filial o‘rnatish (agar kerak bo‘lsa)
+        Filial filial = filialRepo.findById(groupDto.getFilialId())
+                .orElseThrow(() -> new RuntimeException("Filial not found"));
+        group1.setFilial(filial);
+
+        List<User> teachers = groupDto.getTeacherIds().stream()
                 .map(teacherId -> userRepo.findById(teacherId)
                         .orElseThrow(() -> new RuntimeException("Teacher not found: " + teacherId)))
                 .collect(Collectors.toList());
@@ -115,16 +145,10 @@ public class GroupServiceImpl implements GroupService{
         groupRepo.deleteById(id);
     }
 
-    @Override
-    public List<Group> getAllGroups() {
-        return groupRepo.findAll();
-    }
 
     @Override
     public List<User> getStudents(UUID groupId) {
         return userRepo.getByGroupId(groupId);
     }
-
-
 
 }

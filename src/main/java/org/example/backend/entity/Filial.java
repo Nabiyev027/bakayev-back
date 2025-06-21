@@ -37,5 +37,9 @@ public class Filial {
 
     @ManyToMany(mappedBy = "filials")
     private List<User> users;
+
+    @OneToMany(mappedBy = "filial", cascade = CascadeType.ALL)
+    private List<Group> groups;
+
 }
 

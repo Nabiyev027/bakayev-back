@@ -35,6 +35,9 @@ public class Group {
     @ManyToOne(fetch = FetchType.EAGER)
     private Room room;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    private Filial filial;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "group_teachers",

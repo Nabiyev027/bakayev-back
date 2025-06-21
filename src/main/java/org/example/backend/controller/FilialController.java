@@ -2,7 +2,6 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dtoResponse.FilialDto;
-import org.example.backend.entity.Filial;
 import org.example.backend.services.filialService.FilialService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

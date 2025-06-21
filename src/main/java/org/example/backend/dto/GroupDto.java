@@ -10,8 +10,9 @@ import java.util.UUID;
 public class GroupDto {
     private String name;
     private String degree;
+    private UUID roomId;
+    private UUID filialId;
     private LocalTime startTime;
     private LocalTime endTime;
-    private UUID roomId;
-    private List<UUID> teachersId;
+    private List<UUID> teacherIds;
 }
