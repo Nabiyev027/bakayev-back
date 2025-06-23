@@ -37,6 +37,8 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
                 .authorizeHttpRequests(
                         auth -> auth
                                 .requestMatchers("/auth/login").permitAll()
+                                .requestMatchers("/file/get").permitAll()
+                                .requestMatchers("/uploads/**").permitAll()
                                 .requestMatchers("/reference/post").permitAll()
                                 .requestMatchers("/reference").permitAll()
                                 .requestMatchers("/filial/get").permitAll()

@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.GroupsNamesDto;
 import org.example.backend.dtoResponse.GroupsResDto;
-import org.example.backend.dtoResponse.RoomDto;
+import org.example.backend.dtoResponse.RoomResDto;
 import org.example.backend.dtoResponse.TeacherNameDto;
 import org.example.backend.entity.Filial;
 import org.example.backend.entity.Group;
@@ -41,7 +41,7 @@ public class GroupServiceImpl implements GroupService{
             newGroup.setDegree(group.getDegree());
 
             Room room = roomRepo.findById(group.getId()).get();
-            RoomDto roomDto = new RoomDto();
+            RoomResDto roomDto = new RoomResDto();
             roomDto.setId(room.getId());
             roomDto.setName(room.getName());
             roomDto.setNumber(room.getNumber());

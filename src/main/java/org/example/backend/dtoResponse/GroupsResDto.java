@@ -11,7 +11,7 @@ public class GroupsResDto {
     private UUID id;
     private String name;
     private String degree;
-    private RoomDto roomDto;
+    private RoomResDto roomDto;
     private List<TeacherNameDto> teacherNameDtos;
     private String filialName;
     private Integer StudentsNumber;

@@ -25,13 +25,30 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addMapping("/**").allowedHeaders("*").allowedOrigins("*").allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH");
     }
 
+//    @Override
+//    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+//
+//        registry.addResourceHandler("/uploads/**")
+//                .addResourceLocations("file:uploads/");
+//
+//        registry.addResourceHandler("/**")
+//                .addResourceLocations("classpath:/static/")
+//                //                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS))
+//                .resourceChain(false)
+//                .addResolver(new PushStateResourceResolver());
+//    }
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // frontend uchun statik resurslar
         registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/")
-                //                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS))
                 .resourceChain(false)
                 .addResolver(new PushStateResourceResolver());
+
+        // uploads papkani ochish
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:" + System.getProperty("user.dir") + "/uploads/");
     }
 
     private static class PushStateResourceResolver implements ResourceResolver {

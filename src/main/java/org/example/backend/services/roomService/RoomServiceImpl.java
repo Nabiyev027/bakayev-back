@@ -1,8 +1,8 @@
 package org.example.backend.services.roomService;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.example.backend.dtoResponse.RoomDto;
+import org.example.backend.dto.RoomDto;
+import org.example.backend.dtoResponse.RoomResDto;
 import org.example.backend.entity.Filial;
 import org.example.backend.entity.Room;
 import org.example.backend.repository.FilialRepo;
@@ -20,11 +20,11 @@ public class RoomServiceImpl implements RoomService {
     private final FilialRepo filialRepo;
 
     @Override
-    public List<RoomDto> getRooms() {
+    public List<RoomResDto> getRooms() {
         List<Room> all = roomRepo.findAll();
-        List<RoomDto> roomDtos = new ArrayList<>();
+        List<RoomResDto> roomDtos = new ArrayList<>();
         for (Room room : all) {
-            RoomDto roomDto = new RoomDto();
+            RoomResDto roomDto = new RoomResDto();
             roomDto.setId(room.getId());
             roomDto.setName(room.getName());
             roomDto.setNumber(room.getNumber());
@@ -35,20 +35,20 @@ public class RoomServiceImpl implements RoomService {
 
 
     @Override
-    public void createRoom(String name, Integer number, String filialId) {
+    public void createRoom(UUID filialId, RoomDto roomDto) {
         Room room = new Room();
-        room.setName(name);
-        room.setNumber(number);
-        Filial filial = filialRepo.findById(UUID.fromString(filialId)).get();
+        room.setName(roomDto.getName());
+        room.setNumber(roomDto.getNumber());
+        Filial filial = filialRepo.findById(filialId).get();
         room.setFilial(filial);
         roomRepo.save(room);
     }
 
     @Override
-    public void updateRoom(UUID id, String name, Integer number) {
+    public void updateRoom(UUID id, RoomDto roomDto) {
         roomRepo.findById(id).ifPresent(room -> {
-            room.setName(name);
-            room.setNumber(number);
+            room.setName(roomDto.getName());
+            room.setNumber(roomDto.getNumber());
             roomRepo.save(room);
         });
     }

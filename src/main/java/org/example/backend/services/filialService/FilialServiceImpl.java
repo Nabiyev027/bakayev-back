@@ -2,8 +2,11 @@ package org.example.backend.services.filialService;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dtoResponse.FilialDto;
+import org.example.backend.dtoResponse.RoomResDto;
 import org.example.backend.entity.Filial;
+import org.example.backend.entity.Room;
 import org.example.backend.repository.FilialRepo;
+import org.example.backend.repository.RoomRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,6 +22,7 @@ import java.util.UUID;
 public class FilialServiceImpl implements FilialService {
 
     private final FilialRepo filialRepo;
+    private final RoomRepo roomRepo;
 
     @Override
     public List<FilialDto> getFilials() {
@@ -32,6 +36,16 @@ public class FilialServiceImpl implements FilialService {
             filialDto.setLocation(filial.getLocation());
             filialDto.setDescription(filial.getDescription());
             filialDto.setImageUrl(filial.getImageUrl());
+            List<Room> rooms = roomRepo.findByFilial(filial);
+            List<RoomResDto> roomResDtos = new ArrayList<>();
+            rooms.forEach(room -> {
+                RoomResDto roomResDto = new RoomResDto();
+                roomResDto.setId(room.getId());
+                roomResDto.setName(room.getName());
+                roomResDto.setNumber(room.getNumber());
+                roomResDtos.add(roomResDto);
+            });
+            filialDto.setRooms(roomResDtos);
             filialDtos.add(filialDto);
         });
 

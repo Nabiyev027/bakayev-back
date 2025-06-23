@@ -67,7 +67,9 @@ public class UserServiceImpl implements UserService {
         userNew.setLastName(lastName);
         userNew.setUsername(username);
         userNew.setPhone(phone);
-        userNew.setParentPhone(parentPhone);
+        if(parentPhone != null && !parentPhone.trim().isEmpty()) {
+            userNew.setParentPhone(parentPhone);
+        }
         userNew.setPassword(passwordEncoder.encode(password));
         userNew.setRoles(List.of(role1));
 

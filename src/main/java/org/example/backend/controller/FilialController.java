@@ -20,8 +20,8 @@ public class FilialController {
     private final FilialService filialService;
 
 
-    @GetMapping("/get")
-    public ResponseEntity<?> getFilial() {
+    @GetMapping("/getAll")
+    public ResponseEntity<?> getFilials() {
         try {
             List<FilialDto> filials = filialService.getFilials();
             return ResponseEntity.ok(filials);
@@ -41,11 +41,11 @@ public class FilialController {
         }
     }
 
-    @PutMapping("/update")
-    public ResponseEntity<?> updateFilial(@RequestParam String id, @RequestParam("name") String name, @RequestParam("description") String description,
+    @PutMapping("/update/{id}")
+    public ResponseEntity<?> updateFilial(@PathVariable UUID id , @RequestParam("name") String name, @RequestParam("description") String description,
                                           @RequestParam("location") String location, @RequestParam("image") MultipartFile image) {
         try {
-            filialService.updateFilial(id, name,description,location,image);
+            filialService.updateFilial(String.valueOf(id), name,description,location,image);
             return ResponseEntity.ok("Successfully updated");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -54,7 +54,7 @@ public class FilialController {
         }
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteFilial(@PathVariable UUID id) {
         try {
             filialService.deleteFilial(id);
