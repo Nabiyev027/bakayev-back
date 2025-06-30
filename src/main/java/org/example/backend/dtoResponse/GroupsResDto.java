@@ -12,9 +12,9 @@ public class GroupsResDto {
     private String name;
     private String degree;
     private RoomResDto roomDto;
+    private FilialNameDto filialNameDto;
     private List<TeacherNameDto> teacherNameDtos;
-    private String filialName;
-    private Integer StudentsNumber;
+    private Integer studentsNumber;
     private LocalTime startTime;
     private LocalTime endTime;
 }

@@ -3,7 +3,7 @@ package org.example.backend.services.userService;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.LoginDto;
 import org.example.backend.dto.UpdateUserDto;
-import org.example.backend.dto.UserRegisterDto;
+import org.example.backend.dtoResponse.TeacherNameDto;
 import org.example.backend.entity.*;
 import org.example.backend.repository.*;
 import org.example.backend.security.service.JwtService;
@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public Optional<User> register(String firstName, String lastName, String phone, String parentPhone,
                                    String username, String password, String groupId, String role,
-                                   Integer discount, String discountTitle, MultipartFile image) {
+                                   Integer discount, String discountTitle, MultipartFile image, String filialId) {
         // 1. Role topamiz
         Optional<Role> roleOpt = roleRepo.findByName(role);
         if (roleOpt.isEmpty()) {
@@ -72,6 +72,8 @@ public class UserServiceImpl implements UserService {
         }
         userNew.setPassword(passwordEncoder.encode(password));
         userNew.setRoles(List.of(role1));
+        Filial filial = filialRepo.findById(UUID.fromString(filialId)).get();
+        userNew.setFilial(filial);
 
         // 4. Agar rasm bo‘lsa, saqlaymiz
         if (image != null && !image.isEmpty()) {
@@ -139,7 +141,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // Filialni biriktiramiz
-        userNew.setFilials(List.of(filial));
+        userNew.setFilial(filial);
 
         // Userni saqlaymiz
         User savedUser = userRepo.save(userNew);
@@ -147,7 +149,22 @@ public class UserServiceImpl implements UserService {
         return Optional.of(savedUser);
     }
 
+    @Override
+    public List<TeacherNameDto> getTeachers() {
+        List<Role> roles = new ArrayList<>();
+        roleRepo.findByName("ROLE_TEACHER").ifPresent(roles::add);
 
+        List<User> roleTeachers = userRepo.getByRoles(roles);
+        List<TeacherNameDto> teacherNameDtos = new ArrayList<>();
+        roleTeachers.forEach(teacher -> {
+            TeacherNameDto teacherNameDto = new TeacherNameDto();
+            teacherNameDto.setId(teacher.getId());
+            teacherNameDto.setName(teacher.getFirstName() + " " + teacher.getLastName());
+            teacherNameDtos.add(teacherNameDto);
+        });
+
+        return teacherNameDtos;
+    }
 
 
     @Override

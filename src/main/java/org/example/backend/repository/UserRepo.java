@@ -1,5 +1,6 @@
 package org.example.backend.repository;
 
+import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +23,6 @@ public interface UserRepo extends JpaRepository<User, UUID> {
     WHERE gs.group_id = :groupId
     """, nativeQuery = true)
     List<User> getByGroupId(@Param("groupId") UUID groupId);
+
+    List<User> getByRoles(List<Role> roles);
 }

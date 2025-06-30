@@ -49,9 +49,10 @@ public class GroupController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/add")
     public ResponseEntity<?> postGroup(@RequestBody GroupDto groupDto) {
         try {
+            System.out.println(groupDto);
             groupService.createGroup(groupDto);
             return ResponseEntity.ok("Group created successfully");
         } catch (Exception e){
@@ -62,14 +63,15 @@ public class GroupController {
     @PutMapping("/{id}")
     public ResponseEntity<?> editGroup(@PathVariable UUID id, @RequestBody GroupDto groupDto) {
         try {
-            groupService.updateGroup(id,groupDto);
+            groupService.updateGroup(id, groupDto);
             return ResponseEntity.ok("Group updated successfully");
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Xatolik yuz berdi: " + e.getMessage());
         }
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteGroup(@PathVariable UUID id) {
         try {
             groupService.deleteGroup(id);

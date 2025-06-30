@@ -31,9 +31,10 @@ public class AuthController {
                                   @RequestParam("role") String role,
                                   @RequestParam(value = "discount", required = false) Integer discount,
                                   @RequestParam(value = "discountTitle", required = false) String discountTitle,
-                                  @RequestParam(value = "image", required = false) MultipartFile image) {
+                                  @RequestParam(value = "image", required = false) MultipartFile image,
+                                  @RequestParam("filialId") String filialId ) {
         try {
-            userService.register(firstName,lastName,phone,parentPhone,username,password,groupId,role,discount,discountTitle, image);
+            userService.register(firstName,lastName,phone,parentPhone,username,password,groupId,role,discount,discountTitle, image, filialId);
             return ResponseEntity.ok("User registered successfully");
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

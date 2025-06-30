@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.entity.User;
 import org.example.backend.repository.UserRepo;
 import org.example.backend.security.service.JwtService;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,7 +28,7 @@ public class Filter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserRepo userRepo;
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain) throws ServletException, IOException {
         String authorization = request.getHeader("key");
         System.out.println("Authorization: " + authorization);
         if(authorization!=null){

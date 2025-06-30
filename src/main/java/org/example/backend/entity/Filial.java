@@ -35,7 +35,7 @@ public class Filial {
     @OneToMany(mappedBy = "filial", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Room> rooms;
 
-    @ManyToMany(mappedBy = "filials")
+    @OneToMany(mappedBy = "filial", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<User> users;
 
     @OneToMany(mappedBy = "filial", cascade = CascadeType.ALL)

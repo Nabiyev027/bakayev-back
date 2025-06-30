@@ -16,7 +16,7 @@ import java.util.UUID;
 public class RoomController {
     private final RoomService roomService;
 
-    @GetMapping
+    @GetMapping("/getAll")
     public ResponseEntity<?> getAllRooms() {
         try {
             List<RoomResDto> rooms = roomService.getRooms();

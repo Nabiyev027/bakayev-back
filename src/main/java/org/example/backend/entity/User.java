@@ -6,10 +6,7 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Entity(name = "users")
 @Data
@@ -50,13 +47,16 @@ public class User implements UserDetails {
     @ManyToMany(mappedBy = "teachers")
     private List<Group> teacherGroups;
 
-    @ManyToMany
-    @JoinTable(
-            name = "user_filial",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "filial_id")
-    )
-    private List<Filial> filials;
+    @ManyToOne
+    @JoinColumn(name = "filial_id")
+    private Filial filial;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name="teacher_students", joinColumns = @JoinColumn(name = "teacher_id"), inverseJoinColumns = @JoinColumn(name = "student_id"))
+    private Set<User> students = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "students")
+    private Set<User> teachers = new HashSet<>();
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -79,4 +79,5 @@ public class User implements UserDetails {
     public boolean isCredentialsNonExpired() { return true; }
     @Override
     public boolean isEnabled() { return true; }
+
 }

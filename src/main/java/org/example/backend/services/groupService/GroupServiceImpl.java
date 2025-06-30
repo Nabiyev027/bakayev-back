@@ -1,11 +1,9 @@
 package org.example.backend.services.groupService;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.GroupDto;
-import org.example.backend.dtoResponse.GroupsNamesDto;
-import org.example.backend.dtoResponse.GroupsResDto;
-import org.example.backend.dtoResponse.RoomResDto;
-import org.example.backend.dtoResponse.TeacherNameDto;
+import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.Filial;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.Room;
@@ -19,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,10 +36,10 @@ public class GroupServiceImpl implements GroupService{
 
         for (Group group : all) {
             GroupsResDto newGroup = new GroupsResDto();
+            newGroup.setId(group.getId());
             newGroup.setName(group.getName());
             newGroup.setDegree(group.getDegree());
-
-            Room room = roomRepo.findById(group.getId()).get();
+            Room room = roomRepo.findById(group.getRoom().getId()).orElse(null);
             RoomResDto roomDto = new RoomResDto();
             roomDto.setId(room.getId());
             roomDto.setName(room.getName());
@@ -58,10 +57,15 @@ public class GroupServiceImpl implements GroupService{
                 TeacherNameDto teacherNameDto = new TeacherNameDto();
                 teacherNameDto.setId(teacher.getId());
                 teacherNameDto.setName(teacher.getFirstName() + " " + teacher.getLastName());
+                teacherNameDtoList.add(teacherNameDto);
             }
             newGroup.setTeacherNameDtos(teacherNameDtoList);
-            Filial filial = group.getFilial();
-            newGroup.setFilialName(filial.getName());
+
+            FilialNameDto filialNameDto = new FilialNameDto();
+            filialNameDto.setId(group.getFilial().getId());
+            filialNameDto.setName(group.getFilial().getName());
+
+            newGroup.setFilialNameDto(filialNameDto);
 
             groupsResDtos.add(newGroup);
         }
@@ -98,31 +102,48 @@ public class GroupServiceImpl implements GroupService{
     }
 
     @Override
-    public void updateGroup(UUID id, GroupDto groupDto) {
-        Group group1 = groupRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Group not found"));
+    @Transactional // bitta tranzaksiyada hammasi saqlansin
+    public void updateGroup(UUID id, GroupDto dto) {
 
-        group1.setName(groupDto.getName());
-        group1.setDegree(groupDto.getDegree());
-        group1.setStartTime(groupDto.getStartTime());
-        group1.setEndTime(groupDto.getEndTime());
+        // --- 1. Guruhni olib kelamiz
+        Group group = groupRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Group not found: " + id));
 
-        Room room = roomRepo.findById(groupDto.getRoomId())
-                .orElseThrow(() -> new RuntimeException("Room not found"));
-        group1.setRoom(room);
+        // --- 2. Majburiy maydonlar mavjudligini tekshiramiz
+        if (dto.getRoomId() == null)        throw new IllegalArgumentException("roomId bo'sh bo'lishi mumkin emas");
+        if (dto.getFilialId() == null)      throw new IllegalArgumentException("filialId bo'sh bo'lishi mumkin emas");
+        if (dto.getName() == null || dto.getName().isBlank())
+            throw new IllegalArgumentException("Guruh nomi bo'sh bo'lishi mumkin emas");
+        if (dto.getDegree() == null || dto.getDegree().isBlank())
+            throw new IllegalArgumentException("Degree bo'sh bo'lishi mumkin emas");
 
-        // Filial o‘rnatish (agar kerak bo‘lsa)
-        Filial filial = filialRepo.findById(groupDto.getFilialId())
-                .orElseThrow(() -> new RuntimeException("Filial not found"));
-        group1.setFilial(filial);
+        // --- 3. Room va Filialni tekshirib, o‘rnatamiz
+        Room room = roomRepo.findById(dto.getRoomId())
+                .orElseThrow(() -> new EntityNotFoundException("Room not found: " + dto.getRoomId()));
+        group.setRoom(room);
 
-        List<User> teachers = groupDto.getTeacherIds().stream()
-                .map(teacherId -> userRepo.findById(teacherId)
-                        .orElseThrow(() -> new RuntimeException("Teacher not found: " + teacherId)))
-                .collect(Collectors.toList());
-        group1.setTeachers(teachers);
+        Filial filial = filialRepo.findById(dto.getFilialId())
+                .orElseThrow(() -> new EntityNotFoundException("Filial not found: " + dto.getFilialId()));
+        group.setFilial(filial);
 
-        groupRepo.save(group1);
+        // --- 4. Guruh maydonlarini yangilaymiz
+        group.setName(dto.getName());
+        group.setDegree(dto.getDegree());
+        group.setStartTime(dto.getStartTime());
+        group.setEndTime(dto.getEndTime());
+
+        // --- 5. Teacherlar ro‘yxatini yig‘amiz
+        List<UUID> teacherIds = Optional.ofNullable(dto.getTeacherIds()).orElse(List.of());
+        List<User> teachers = new ArrayList<>(teacherIds.stream()
+                .map(tid -> userRepo.findById(tid)
+                        .orElseThrow(() -> new EntityNotFoundException("Teacher not found: " + tid)))
+                .toList()); // ➜ new ArrayList<>(...) orqali mutable holga o‘tkazildi
+
+        group.setTeachers(teachers);
+
+
+        // --- 6. Saqlaymiz
+        groupRepo.save(group);
     }
 
     @Override
@@ -141,8 +162,19 @@ public class GroupServiceImpl implements GroupService{
     }
 
     @Override
+    @Transactional
     public void deleteGroup(UUID id) {
-        groupRepo.deleteById(id);
+        Group group = groupRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Group not found: " + id));
+
+        // Many-to-many bog'lovchilarni tozalaymiz
+        group.getTeachers().clear();
+        group.getStudents().clear();
+
+        // Lesson larni o'chirish uchun lessons ro'yxatini bo'shatish shart emas,
+        // chunki CascadeType.ALL bu ishni o'zi qiladi.
+
+        groupRepo.delete(group); // endi xotirjam o'chsa bo'ladi
     }
 
 

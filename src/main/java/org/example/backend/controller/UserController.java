@@ -3,6 +3,7 @@ package org.example.backend.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.UpdateUserDto;
 import org.example.backend.dto.UserReception;
+import org.example.backend.dtoResponse.TeacherNameDto;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
 import org.example.backend.repository.UserRepo;
@@ -21,11 +22,21 @@ public class UserController {
     private final UserService userService;
     private final UserRepo userRepo;
 
-    @GetMapping("getRoles")
+    @GetMapping("/getRoles")
     public ResponseEntity<?> getRoles() {
         try {
             List<Role> roles = userService.getRoles();
             return ResponseEntity.ok(roles);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/teacher")
+    public ResponseEntity<?> getTeachers() {
+        try {
+            List<TeacherNameDto> teachers = userService.getTeachers();
+            return ResponseEntity.ok(teachers);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }

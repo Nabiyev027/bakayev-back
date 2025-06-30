@@ -1,5 +1,6 @@
 package org.example.backend.repository;
 
+import org.example.backend.dtoResponse.GroupsResDto;
 import org.example.backend.entity.Filial;
 import org.example.backend.entity.Room;
 import org.springframework.data.jpa.repository.JpaRepository;
