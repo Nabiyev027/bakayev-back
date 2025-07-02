@@ -344,8 +344,51 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void deleteUser(UUID id) {
-        userRepo.deleteById(id);
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+
+        // 1. Remove user from groups where he is a student
+        for (Group group : user.getStudentGroups()) {
+            group.getStudents().remove(user);
+        }
+        user.getStudentGroups().clear();
+
+        // 2. Remove user from groups where he is a teacher
+        for (Group group : user.getTeacherGroups()) {
+            group.getTeachers().remove(user);
+        }
+        user.getTeacherGroups().clear();
+
+        // 3. Remove user from teachers (agar bu user student bo‘lsa)
+        for (User teacher : user.getTeachers()) {
+            teacher.getStudents().remove(user);
+        }
+        user.getTeachers().clear();
+
+        // 4. Remove user from students (agar bu user teacher bo‘lsa)
+        for (User student : user.getStudents()) {
+            student.getTeachers().remove(user);
+        }
+        user.getStudents().clear();
+
+        // 5. ReferenceStatus tozalash
+        if (user.getReferenceStatuses() != null) {
+            user.getReferenceStatuses().forEach(rs -> rs.setReceptionist(null));
+            user.getReferenceStatuses().clear();
+        }
+
+        // 6. Filialdan uzish (optional)
+        user.setFilial(null);
+
+        // 7. Roles tozalash (ixtiyoriy)
+        if (user.getRoles() != null) {
+            user.getRoles().clear();
+        }
+
+        // 8. Endi userni o‘chiramiz
+        userRepo.delete(user);
     }
 
     @Override

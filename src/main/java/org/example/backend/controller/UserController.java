@@ -87,7 +87,8 @@ public class UserController {
             userService.deleteUser(id);
             return  ResponseEntity.ok("User deleted successfully");
         }catch (Exception e){
-            return ResponseEntity.badRequest().body(e.getMessage());
+            e.printStackTrace(); // yoki log.error(...);
+            throw new RuntimeException("User deletion failed: " + e.getMessage());
         }
     }
 

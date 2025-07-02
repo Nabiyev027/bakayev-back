@@ -9,7 +9,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.*;
 
 @Entity(name = "users")
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class User implements UserDetails {
@@ -47,11 +48,6 @@ public class User implements UserDetails {
     @ManyToMany(mappedBy = "teachers")
     private List<Group> teacherGroups;
 
-//    @ManyToMany
-//    @JoinTable(name = "group_students",
-//            joinColumns = @JoinColumn(name = "student_id"),
-//            inverseJoinColumns = @JoinColumn(name = "group_id"))
-//    private List<Group> studentGroups;
 
     @ManyToOne
     @JoinColumn(name = "filial_id")
@@ -59,9 +55,11 @@ public class User implements UserDetails {
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name="teacher_students", joinColumns = @JoinColumn(name = "teacher_id"), inverseJoinColumns = @JoinColumn(name = "student_id"))
+    @ToString.Exclude
     private Set<User> students = new HashSet<>();
 
     @ManyToMany(fetch = FetchType.EAGER, mappedBy = "students")
+    @ToString.Exclude
     private Set<User> teachers = new HashSet<>();
 
     @Override
