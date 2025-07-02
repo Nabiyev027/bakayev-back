@@ -1,8 +1,10 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dto.StudentDto;
 import org.example.backend.dto.UpdateUserDto;
 import org.example.backend.dto.UserReception;
+import org.example.backend.dtoResponse.StudentResDto;
 import org.example.backend.dtoResponse.TeacherNameDto;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
@@ -59,10 +61,11 @@ public class UserController {
 
     }
 
-    @GetMapping("/student")
+    @GetMapping("/students")
     public ResponseEntity<?> getStudents(){
         try {
-            return  ResponseEntity.ok(userRepo.findAll());
+            List<StudentResDto> students = userService.getStudents();
+            return  ResponseEntity.ok(students);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -88,13 +91,15 @@ public class UserController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable UUID id, @RequestBody UpdateUserDto updateUserDto){
+    @PutMapping("/student/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable UUID id, @RequestBody StudentDto studentDto){
         try {
-            userService.updateUser(id,updateUserDto);
+            userService.updateStudent(id,studentDto);
             return ResponseEntity.ok("User updated successfully");
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+
 }

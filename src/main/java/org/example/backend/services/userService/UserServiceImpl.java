@@ -1,8 +1,13 @@
 package org.example.backend.services.userService;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.LoginDto;
+import org.example.backend.dto.StudentDto;
 import org.example.backend.dto.UpdateUserDto;
+import org.example.backend.dtoResponse.FilialNameDto;
+import org.example.backend.dtoResponse.GroupsNamesDto;
+import org.example.backend.dtoResponse.StudentResDto;
 import org.example.backend.dtoResponse.TeacherNameDto;
 import org.example.backend.entity.*;
 import org.example.backend.repository.*;
@@ -111,40 +116,62 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public Optional<User> registerForAdmin(String firstName, String lastName, String phone, String username, String password, String filialId, String role, MultipartFile image) {
+    public Optional<User> registerForAdmin(String firstName, String lastName, String phone, String username,
+                                           String password, String filialId, String role, String groupId,
+                                           MultipartFile image) {
+        // 1. Role topamiz
         Optional<Role> roleOpt = roleRepo.findByName(role);
         if (roleOpt.isEmpty()) {
-            return Optional.empty();
+            return Optional.empty(); // noto‘g‘ri role
         }
 
-        Role role1 = roleOpt.get();
+        // 2. Group ID null yoki bo‘sh emasligini tekshiramiz
+        Optional<Group> groupOpt = Optional.empty();
+        if (groupId != null && !groupId.trim().isEmpty()) {
+            try {
+                UUID groupUUID = UUID.fromString(groupId);
+                groupOpt = groupRepo.findById(groupUUID);
+                if (groupOpt.isEmpty()) {
+                    return Optional.empty(); // noto‘g‘ri group id
+                }
+            } catch (Exception e) {
+                return Optional.empty(); // UUID format noto‘g‘ri
+            }
+        }
 
-        // Filialni topamiz
+        Role roleEntity = roleOpt.get();
+        Group group = groupOpt.orElse(null);
+
+        // 3. Filialni tekshiramiz
         Optional<Filial> filialOpt = filialRepo.findById(UUID.fromString(filialId));
         if (filialOpt.isEmpty()) {
-            return Optional.empty(); // Agar filial topilmasa, foydalanuvchi yaratmaslik
+            return Optional.empty(); // noto‘g‘ri filial
         }
 
-        Filial filial = filialOpt.get();
+        // 4. Foydalanuvchini yaratamiz
+        User user = new User();
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setUsername(username);
+        user.setPhone(phone);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setRoles(List.of(roleEntity));
+        user.setFilial(filialOpt.get());
 
-        User userNew = new User();
-        userNew.setFirstName(firstName);
-        userNew.setLastName(lastName);
-        userNew.setUsername(username);
-        userNew.setPhone(phone);
-        userNew.setPassword(passwordEncoder.encode(password));
-        userNew.setRoles(List.of(role1));
-
+        // 5. Rasm bo‘lsa saqlaymiz
         if (image != null && !image.isEmpty()) {
-            String imgPath = createImage(image);
-            userNew.setImageUrl(imgPath);
+            String imagePath = createImage(image);
+            user.setImageUrl(imagePath);
         }
 
-        // Filialni biriktiramiz
-        userNew.setFilial(filial);
+        // 6. Userni saqlaymiz
+        User savedUser = userRepo.save(user);
 
-        // Userni saqlaymiz
-        User savedUser = userRepo.save(userNew);
+        // 7. Groupga qo‘shamiz (agar mavjud bo‘lsa)
+        if (group != null) {
+            group.getTeachers().add(savedUser);
+            groupRepo.save(group);
+        }
 
         return Optional.of(savedUser);
     }
@@ -166,9 +193,60 @@ public class UserServiceImpl implements UserService {
         return teacherNameDtos;
     }
 
-
+    @Transactional
     @Override
-    public void updateUser(UUID id, UpdateUserDto updateUserDto) {
+    public List<StudentResDto> getStudents() {
+        List<StudentResDto> students = new ArrayList<>();
+
+        Optional<Role> roleOpt = roleRepo.findByName("ROLE_STUDENT");
+        if (roleOpt.isEmpty()) {
+            System.out.println("ROLE_STUDENT not found!");
+            return students;
+        }
+
+        Role studentRole = roleOpt.get();
+        List<User> roleStudents = userRepo.getByRoles(List.of(studentRole));
+
+        System.out.println("Found students count: " + roleStudents.size());
+
+        roleStudents.forEach(s -> {
+            StudentResDto newStudent = new StudentResDto();
+            newStudent.setId(s.getId());
+            newStudent.setImgUrl(s.getImageUrl());
+            newStudent.setFirstName(s.getFirstName());
+            newStudent.setLastName(s.getLastName());
+            newStudent.setUsername(s.getUsername());
+            newStudent.setPhone(s.getPhone());
+            newStudent.setParentPhone(s.getParentPhone());
+
+            Filial filial = s.getFilial();
+            if (filial != null) {
+                FilialNameDto filialNameDto = new FilialNameDto();
+                filialNameDto.setId(filial.getId());
+                filialNameDto.setName(filial.getName());
+                newStudent.setFilialNameDto(filialNameDto);
+            }
+
+            List<GroupsNamesDto> groups = new ArrayList<>();
+            if (s.getStudentGroups() != null) {
+                s.getStudentGroups().forEach(group -> {
+                    GroupsNamesDto groupsNames = new GroupsNamesDto();
+                    groupsNames.setId(group.getId());
+                    groupsNames.setName(group.getName());
+                    groups.add(groupsNames);
+                });
+            }
+
+            newStudent.setGroups(groups);
+            students.add(newStudent);
+        });
+
+        return students;
+    }
+
+    @Transactional
+    @Override
+    public void updateStudent(UUID id, StudentDto studentDto) {
         Optional<User> optionalUser = userRepo.findById(id);
         if (optionalUser.isEmpty()) {
             throw new UsernameNotFoundException("Foydalanuvchi topilmadi: " + id);
@@ -176,30 +254,59 @@ public class UserServiceImpl implements UserService {
 
         User user = optionalUser.get();
 
-        // Yangilanishi kerak bo'lgan maydonlarni tekshirib yangilash
-        if (updateUserDto.getFirstName() != null) {
-            user.setFirstName(updateUserDto.getFirstName());
+        // Ism va familiya va boshqa oddiy maydonlarni yangilash
+        if (studentDto.getFirstName() != null) {
+            user.setFirstName(studentDto.getFirstName());
         }
 
-        if (updateUserDto.getLastName() != null) {
-            user.setLastName(updateUserDto.getLastName());
+        if (studentDto.getLastName() != null) {
+            user.setLastName(studentDto.getLastName());
         }
 
-        if (updateUserDto.getUsername() != null) {
-            user.setUsername(updateUserDto.getUsername());
+        if (studentDto.getUsername() != null) {
+            user.setUsername(studentDto.getUsername());
         }
 
-        if (updateUserDto.getPhone() != null) {
-            user.setPhone(updateUserDto.getPhone());
+        if (studentDto.getPhone() != null) {
+            user.setPhone(studentDto.getPhone());
         }
 
-        if (updateUserDto.getPassword() != null) {
-            user.setParentPhone(updateUserDto.getParentPhone());
+        if (studentDto.getParentPhone() != null) {
+            user.setParentPhone(studentDto.getParentPhone());
         }
 
-        // Foydalanuvchini yangilash
+        // Filial yangilanishi
+        if (studentDto.getFilialId() != null) {
+            Filial filial = filialRepo.findById(studentDto.getFilialId())
+                    .orElseThrow(() -> new RuntimeException("Filial topilmadi: " + studentDto.getFilialId()));
+            user.setFilial(filial);
+        }
+
+        if (studentDto.getGroupIds() != null) {
+            List<Group> requestedGroups = studentDto.getGroupIds().stream()
+                    .map(gid -> groupRepo.findById(gid)
+                            .orElseThrow(() -> new EntityNotFoundException("Group not found: " + gid)))
+                    .toList();
+
+            // Avval eski bog'lanishni tozalash
+            for (Group old : user.getStudentGroups()) {
+                old.getStudents().remove(user);
+            }
+
+            // Yangi guruhlarga qo‘shish
+            for (Group g : requestedGroups) {
+                g.getStudents().add(user);
+            }
+
+            // Faqat xotirada sinxron bo‘lishi uchun
+            user.setStudentGroups(new ArrayList<>(requestedGroups));
+
+            // E’tibor: O‘zgargan guruhlarni saqlab qo‘yamiz
+            groupRepo.saveAll(requestedGroups);
+        }
+
+        // Foydalanuvchini saqlash
         userRepo.save(user);
-
     }
 
     @Override

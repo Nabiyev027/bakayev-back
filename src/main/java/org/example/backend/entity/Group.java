@@ -52,5 +52,8 @@ public class Group {
     )
     private List<User> students;
 
+//    @ManyToMany(mappedBy = "studentGroups")
+//    private List<User> students;
+
 
 }

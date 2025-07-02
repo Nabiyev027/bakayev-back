@@ -47,6 +47,12 @@ public class User implements UserDetails {
     @ManyToMany(mappedBy = "teachers")
     private List<Group> teacherGroups;
 
+//    @ManyToMany
+//    @JoinTable(name = "group_students",
+//            joinColumns = @JoinColumn(name = "student_id"),
+//            inverseJoinColumns = @JoinColumn(name = "group_id"))
+//    private List<Group> studentGroups;
+
     @ManyToOne
     @JoinColumn(name = "filial_id")
     private Filial filial;
