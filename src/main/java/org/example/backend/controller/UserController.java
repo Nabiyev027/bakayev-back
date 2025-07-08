@@ -6,6 +6,7 @@ import org.example.backend.dto.UpdateUserDto;
 import org.example.backend.dto.UserReception;
 import org.example.backend.dtoResponse.StudentResDto;
 import org.example.backend.dtoResponse.TeacherNameDto;
+import org.example.backend.dtoResponse.TeacherResDto;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
 import org.example.backend.repository.UserRepo;
@@ -59,6 +60,16 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
 
+    }
+
+    @GetMapping("/teacherWithData")
+    public ResponseEntity<?> getTeachersWithData() {
+        try {
+            List<TeacherResDto> teachers = userService.getTeachersWithData();
+            return  ResponseEntity.ok(teachers);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @GetMapping("/students")

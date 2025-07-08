@@ -34,7 +34,7 @@ public class Loader implements CommandLineRunner {
             User userA=new User();
             userA.setFirstName("Bakayev");
             userA.setLastName("Sohib");
-            userA.setPhone("+998 91 442 00 31");
+            userA.setPhone("+998914420031");
             userA.setUsername("bakayev");
             userA.setPassword(passwordEncoder.encode("123"));
             userA.setRoles(List.of(roleAdmin));
@@ -44,7 +44,7 @@ public class Loader implements CommandLineRunner {
             User userR =  new User();
             userR.setFirstName("Rajabov");
             userR.setLastName("Lazizbek");
-            userR.setPhone("+998 91 442 00 31");
+            userR.setPhone("+998914420031");
             userR.setUsername("rajabov");
             userR.setPassword(passwordEncoder.encode("123"));
             userR.setRoles(List.of(roleReception));
@@ -54,7 +54,7 @@ public class Loader implements CommandLineRunner {
             User userT =  new User();
             userT.setFirstName("Umarov");
             userT.setLastName("Bekzod");
-            userT.setPhone("+998 91 442 00 31");
+            userT.setPhone("+998914420031");
             userT.setUsername("umarov");
             userT.setPassword(passwordEncoder.encode("123"));
             userT.setRoles(List.of(roleTeacher));

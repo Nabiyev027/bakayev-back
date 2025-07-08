@@ -5,10 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.LoginDto;
 import org.example.backend.dto.StudentDto;
 import org.example.backend.dto.UpdateUserDto;
-import org.example.backend.dtoResponse.FilialNameDto;
-import org.example.backend.dtoResponse.GroupsNamesDto;
-import org.example.backend.dtoResponse.StudentResDto;
-import org.example.backend.dtoResponse.TeacherNameDto;
+import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.*;
 import org.example.backend.repository.*;
 import org.example.backend.security.service.JwtService;
@@ -242,6 +239,57 @@ public class UserServiceImpl implements UserService {
         });
 
         return students;
+    }
+
+    @Transactional
+    @Override
+    public List<TeacherResDto> getTeachersWithData() {
+        List<TeacherResDto> teachers = new ArrayList<>();
+
+        Optional<Role> roleOpt = roleRepo.findByName("ROLE_TEACHER");
+        if (roleOpt.isEmpty()) {
+            System.out.println("ROLE_TEACHER not found!");
+            return teachers;
+        }
+
+        Role teacherRole = roleOpt.get();
+        List<User> roleTeachers = userRepo.getByRoles(List.of(teacherRole));
+
+        System.out.println("Found students count: " + roleTeachers.size());
+
+        roleTeachers.forEach(t -> {
+            TeacherResDto newTeacher = new TeacherResDto();
+            newTeacher.setId(t.getId());
+            newTeacher.setImgUrl(t.getImageUrl());
+            newTeacher.setFirstName(t.getFirstName());
+            newTeacher.setLastName(t.getLastName());
+            newTeacher.setUsername(t.getUsername());
+            newTeacher.setPhone(t.getPhone());
+            newTeacher.setParentPhone(t.getParentPhone());
+
+            Filial filial = t.getFilial();
+            if (filial != null) {
+                FilialNameDto filialNameDto = new FilialNameDto();
+                filialNameDto.setId(filial.getId());
+                filialNameDto.setName(filial.getName());
+                newTeacher.setFilialNameDto(filialNameDto);
+            }
+
+            List<GroupsNamesDto> groups = new ArrayList<>();
+            if (t.getTeacherGroups() != null) {
+                t.getTeacherGroups().forEach(group -> {
+                    GroupsNamesDto groupsNames = new GroupsNamesDto();
+                    groupsNames.setId(group.getId());
+                    groupsNames.setName(group.getName());
+                    groups.add(groupsNames);
+                });
+            }
+
+            newTeacher.setGroups(groups);
+            teachers.add(newTeacher);
+        });
+
+        return teachers;
     }
 
     @Transactional

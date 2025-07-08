@@ -5,6 +5,7 @@ import org.example.backend.dto.StudentDto;
 import org.example.backend.dto.UpdateUserDto;
 import org.example.backend.dtoResponse.StudentResDto;
 import org.example.backend.dtoResponse.TeacherNameDto;
+import org.example.backend.dtoResponse.TeacherResDto;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
 import org.springframework.web.multipart.MultipartFile;
@@ -35,5 +36,7 @@ public interface UserService {
     List<TeacherNameDto> getTeachers();
 
     List<StudentResDto> getStudents();
+
+    List<TeacherResDto> getTeachersWithData();
 }
 
