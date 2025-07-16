@@ -15,6 +15,9 @@ import java.util.UUID;
 public interface AttendanceRepo extends JpaRepository<Attendance, UUID> {
     List<Attendance> getAttendancesByGroup(Group group);
 
+    Attendance getAttendanceByStudentAndDate(User user, LocalDate date);
+
+    List<Attendance> findByGroup_IdAndDate(UUID groupId, LocalDate date);
 
     Optional<Attendance> findByGroupAndStudentAndDate(Group group, User student, LocalDate today);
     List<Attendance> findByGroupAndDate(Group group, LocalDate today);

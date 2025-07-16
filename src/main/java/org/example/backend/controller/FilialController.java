@@ -43,7 +43,7 @@ public class FilialController {
 
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateFilial(@PathVariable UUID id , @RequestParam("name") String name, @RequestParam("description") String description,
-                                          @RequestParam("location") String location, @RequestParam("image") MultipartFile image) {
+                                          @RequestParam("location") String location, @RequestParam(value = "image", required = false) MultipartFile image) {
         try {
             filialService.updateFilial(String.valueOf(id), name,description,location,image);
             return ResponseEntity.ok("Successfully updated");
