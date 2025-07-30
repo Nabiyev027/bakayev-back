@@ -3,6 +3,7 @@ package org.example.backend.services.userService;
 import org.example.backend.dto.LoginDto;
 import org.example.backend.dto.StudentDto;
 import org.example.backend.dto.UpdateUserDto;
+import org.example.backend.dtoResponse.EmployerResDto;
 import org.example.backend.dtoResponse.StudentResDto;
 import org.example.backend.dtoResponse.TeacherNameDto;
 import org.example.backend.dtoResponse.TeacherResDto;
@@ -38,5 +39,9 @@ public interface UserService {
     List<StudentResDto> getStudents();
 
     List<TeacherResDto> getTeachersWithData();
+
+    List<Role> getEmpRoles();
+
+    List<EmployerResDto> getEmployers();
 }
 

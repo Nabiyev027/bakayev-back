@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.HeaderSectionDto;
 import org.example.backend.services.headerService.HeaderService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,31 +18,22 @@ import java.util.UUID;
 public class HeaderSectionController {
     private final HeaderService headerService;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getHeaderSection(@PathVariable UUID id, @RequestParam String lang) {
+    @Transactional
+    @GetMapping
+    public ResponseEntity<?> getHeaderSection(@RequestParam String lang) {
         try {
-            HeaderSectionDto header = headerService.getHeader(id, lang);
+            HeaderSectionDto header = headerService.getHeader(lang);
             return ResponseEntity.ok(header);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PostMapping
+    @PostMapping("/post")
     public ResponseEntity<?> addHeaderSection(@RequestParam String title, @RequestParam MultipartFile img, @RequestParam String lang) {
         try {
-            headerService.postTitle(title,img,lang);
+            headerService.postOrEdit(title,img,lang);
             return ResponseEntity.ok("successfully added header");
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<?> editHeaderSection(@PathVariable UUID id, @RequestParam String title, @RequestParam MultipartFile img, @RequestParam String lang) {
-        try {
-            headerService.editTitle(id,title,img,lang);
-            return ResponseEntity.ok("successfully edited header");
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }

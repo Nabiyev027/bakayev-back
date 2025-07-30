@@ -18,7 +18,7 @@ public class FooterController {
 
     private final FooterService footerService;
 
-    @GetMapping
+    @GetMapping("/get")
     public ResponseEntity<?> getFooter() {
         try {
             FooterSection info = footerService.getInfo();
@@ -29,32 +29,13 @@ public class FooterController {
     }
 
     @PostMapping
-    public ResponseEntity<?> postFooter(@RequestBody FooterSectionDto footerSectionDto){
+    public ResponseEntity<?> postAndUpdateFooter(@RequestBody FooterSectionDto footerSectionDto){
         try {
-            footerService.postInfo(footerSectionDto);
+            footerService.postAndUpdateInfo(footerSectionDto);
             return ResponseEntity.ok("Successfully added info");
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> editAbout(@PathVariable UUID id, @RequestBody FooterSectionDto footerSectionDto){
-        try{
-            footerService.updateInfo(id,footerSectionDto);
-            return ResponseEntity.ok("Successfully updated info");
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteAbout(@PathVariable UUID id){
-        try{
-            footerService.deleteInfo(id);
-            return ResponseEntity.ok("Successfully deleted");
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
 }

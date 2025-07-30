@@ -6,9 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.UUID;
 
 public interface HeaderService {
-    void postTitle(String title, MultipartFile img, String lang);
+    void postOrEdit(String title, MultipartFile img, String lang);
 
-    void editTitle(UUID id, String title, MultipartFile img, String lang);
-
-    HeaderSectionDto getHeader(UUID id, String lang);
+    HeaderSectionDto getHeader(String lang);
 }

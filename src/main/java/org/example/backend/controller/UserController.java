@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.StudentDto;
 import org.example.backend.dto.UpdateUserDto;
 import org.example.backend.dto.UserReception;
+import org.example.backend.dtoResponse.EmployerResDto;
 import org.example.backend.dtoResponse.StudentResDto;
 import org.example.backend.dtoResponse.TeacherNameDto;
 import org.example.backend.dtoResponse.TeacherResDto;
@@ -30,6 +31,26 @@ public class UserController {
         try {
             List<Role> roles = userService.getRoles();
             return ResponseEntity.ok(roles);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/getEmpRoles")
+    public ResponseEntity<?> getEmpRoles(){
+        try {
+            List<Role> empRoles = userService.getEmpRoles();
+            return ResponseEntity.ok(empRoles);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/employer")
+    public ResponseEntity<?> getEmployer(){
+        try {
+            List<EmployerResDto> employers = userService.getEmployers();
+            return ResponseEntity.ok(employers);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }

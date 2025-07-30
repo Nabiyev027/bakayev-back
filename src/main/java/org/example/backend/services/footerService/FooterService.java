@@ -8,9 +8,5 @@ import java.util.UUID;
 public interface FooterService {
     FooterSection getInfo();
 
-    void postInfo(FooterSectionDto footerSectionDto);
-
-    void updateInfo(UUID id, FooterSectionDto footerSectionDto);
-
-    void deleteInfo(UUID id);
+    void postAndUpdateInfo(FooterSectionDto footerSectionDto);
 }

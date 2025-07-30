@@ -292,6 +292,52 @@ public class UserServiceImpl implements UserService {
         return teachers;
     }
 
+    @Override
+    public List<Role> getEmpRoles() {
+        List<Role> roles = new ArrayList<>();
+        roleRepo.findAll().forEach(role -> {
+            String roleName = role.getName();
+            if (roleName.equals("ROLE_RECEPTION") ||
+                    roleName.equals("ROLE_TEACHER") ||
+                    roleName.equals("ROLE_MAIN_RECEPTION")) {
+                roles.add(role);
+            }
+        });
+        return roles;
+    }
+
+    @Override
+    public List<EmployerResDto> getEmployers() {
+        List<EmployerResDto> employers = new ArrayList<>();
+
+        userRepo.findAll().forEach(user -> {
+            EmployerResDto employer = new EmployerResDto();
+            employer.setId(user.getId());
+            employer.setImgUrl(user.getImageUrl());
+            employer.setFirstName(user.getFirstName());
+            employer.setLastName(user.getLastName());
+            employer.setUsername(user.getUsername());
+            employer.setPhone(user.getPhone());
+
+            if (user.getRoles() != null) {
+                employer.setRoles(user.getRoles());
+            }
+
+            Filial filial = user.getFilial();
+            if (filial != null) {
+                FilialNameDto filialNameDto = new FilialNameDto();
+                filialNameDto.setId(filial.getId());
+                filialNameDto.setName(filial.getName());
+                employer.setFilialNameDto(filialNameDto);
+            }
+
+            employers.add(employer);
+        });
+
+        return employers;
+    }
+
+
     @Transactional
     @Override
     public void updateStudent(UUID id, StudentDto studentDto) {
@@ -501,8 +547,5 @@ public class UserServiceImpl implements UserService {
 
     }
 
-    private boolean hasRole(List<Role> roles, String authority) {
-       return roles.stream().filter(role -> role.getName().equals(authority)).toList().size()>0;
-    }
 
 }
