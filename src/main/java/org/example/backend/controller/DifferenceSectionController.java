@@ -28,7 +28,7 @@ public class DifferenceSectionController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/post")
     public ResponseEntity<?> postDifference(@RequestParam MultipartFile img, @RequestParam String title, @RequestParam String description, @RequestParam String lang){
         try {
             differenceService.createDifference(img,title,description,lang);

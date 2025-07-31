@@ -12,7 +12,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,15 +28,17 @@ public class DifferenceServiceImpl implements DifferenceService {
     @Override
     public void createDifference(MultipartFile img, String title, String description, String lang) {
         DifferenceSection differenceSection = new DifferenceSection();
-        String path = createImage(img);
-        differenceSection.setImgUrl(path);
+        if (img != null && !img.isEmpty()) {
+            String imgPath = createImage(img);
+            differenceSection.setImgUrl(imgPath);
+        }
         DifferenceSection saved = differenceSectionRepo.save(differenceSection);
         DifferenceSectionTranslation differenceSectionTranslation = new DifferenceSectionTranslation();
         differenceSectionTranslation.setTitle(title);
         differenceSectionTranslation.setDescription(description);
+        differenceSectionTranslation.setLanguage(Lang.valueOf(lang));
         differenceSectionTranslation.setDifferenceSection(saved);
         differenceSectionTranslationRepo.save(differenceSectionTranslation);
-
     }
 
     @Override
@@ -77,48 +82,41 @@ public class DifferenceServiceImpl implements DifferenceService {
     }
 
     private String replaceImage(String oldImgUrl, MultipartFile newImg) {
-        try {
-            // static papkaning to‘liq yo‘lini olish
-            File staticFolder = new ClassPathResource("static").getFile();
+        Optional.ofNullable(oldImgUrl)
+                .filter(url -> !url.isEmpty())
+                .map(url -> url.substring(url.lastIndexOf("/") + 1))
+                .map(fileName -> Paths.get(System.getProperty("user.dir"), "uploads", fileName))
+                .ifPresent(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException e) {
+                        System.err.println("Eski rasmni o‘chirishda xatolik: " + e.getMessage());
+                    }
+                });
 
-            // Eski rasmni o‘chirish
-            if (oldImgUrl != null && !oldImgUrl.isEmpty()) {
-                File oldImageFile = new File(staticFolder.getAbsolutePath() + oldImgUrl);
-                if (oldImageFile.exists()) {
-                    oldImageFile.delete();
-                }
-            }
-
-            // Yangi rasmni saqlash
-            return createImage(newImg);
-
-        } catch (IOException e) {
-            throw new RuntimeException("Rasmni almashtirishda xatolik yuz berdi", e);
-        }
+        return createImage(newImg);
     }
 
     private String createImage(MultipartFile img) {
         try {
-            // static/uploads papkasi joylashgan manzilni olish
-            File uploadsFolder = new ClassPathResource("static/uploads/").getFile();
+            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            File uploadsFolder = new File(uploadDir);
 
-            // Agar papka mavjud bo'lmasa - yaratamiz
             if (!uploadsFolder.exists()) {
                 uploadsFolder.mkdirs();
             }
 
-            // Unikal fayl nomi yaratamiz
             String uniqueFileName = UUID.randomUUID().toString() + "_" + img.getOriginalFilename();
-
-            // Faylni to'liq yo'liga saqlaymiz
             File destination = new File(uploadsFolder, uniqueFileName);
             img.transferTo(destination);
 
-            // Frontendda ko‘rsatish uchun nisbiy yo‘lni qaytaramiz
+            // Agar rasmlar frontend static fayllarida ko‘rsatilsa:
             return "/uploads/" + uniqueFileName;
 
         } catch (IOException e) {
-            throw new RuntimeException("Rasmni saqlab bo‘lmadi", e);
+            e.printStackTrace(); // Konsolda to‘liq xatoni ko‘rsatish uchun
+            throw new RuntimeException("Rasmni saqlab bo‘lmadi: " + e.getMessage(), e);
         }
+
     }
 }
