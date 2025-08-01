@@ -23,7 +23,7 @@ public class DifferenceSectionTranslation {
     private String title;
 
     @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = false, length = 800)
     private String description;
 
     @Enumerated(EnumType.STRING)

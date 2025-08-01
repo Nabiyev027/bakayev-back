@@ -1,6 +1,7 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dtoResponse.DifferenceResDto;
 import org.example.backend.entity.DifferenceSection;
 import org.example.backend.services.differenceService.DifferenceService;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +19,10 @@ public class DifferenceSectionController {
 
     private final DifferenceService differenceService;
 
-    @GetMapping
+    @GetMapping("/get")
     public ResponseEntity<?> getDifferenceSection(){
         try {
-            List<DifferenceSection> difference = differenceService.getDifference();
+            List<DifferenceResDto> difference = differenceService.getDifference();
             return ResponseEntity.ok(difference);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -29,26 +30,39 @@ public class DifferenceSectionController {
     }
 
     @PostMapping("/post")
-    public ResponseEntity<?> postDifference(@RequestParam MultipartFile img, @RequestParam String title, @RequestParam String description, @RequestParam String lang){
+    public ResponseEntity<?> postDifference(@RequestParam MultipartFile img, @RequestParam String titleUz, @RequestParam String descriptionUz,
+                                            @RequestParam String titleRu, @RequestParam String descriptionRu,
+                                            @RequestParam String titleEn, @RequestParam String descriptionEn){
         try {
-            differenceService.createDifference(img,title,description,lang);
+            differenceService.createDifference(img,
+                    titleUz,
+                    descriptionUz,
+                    titleRu,
+                    descriptionRu,
+                    titleEn,
+                    descriptionEn);
             return ResponseEntity.ok("Success");
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> editDiference(@PathVariable UUID id, @RequestParam MultipartFile img, @RequestParam String title, @RequestParam String description, @RequestParam String lang){
+    @PutMapping("/update/{id}")
+    public ResponseEntity<?> editDiference(@PathVariable UUID id,
+                                           @RequestParam(value = "img", required = false) MultipartFile img,
+                                           @RequestParam(value = "oldImgUrl", required = false) String oldImgUrl,
+                                           @RequestParam String titleUz, @RequestParam String descriptionUz,
+                                           @RequestParam String titleRu, @RequestParam String descriptionRu,
+                                           @RequestParam String titleEn, @RequestParam String descriptionEn){
         try{
-            differenceService.editDif(id,img,title,description,lang);
+            differenceService.editDif(id,img,oldImgUrl,titleUz,descriptionUz,titleRu,descriptionRu,titleEn,descriptionEn);
             return ResponseEntity.ok("Success");
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteReference(@PathVariable UUID id){
         try{
             differenceService.deleteRef(id);
