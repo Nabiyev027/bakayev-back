@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.GroupsNamesDto;
 import org.example.backend.dtoResponse.GroupsResDto;
+import org.example.backend.dtoResponse.StudentProjection;
+import org.example.backend.dtoResponse.StudentResDto;
 import org.example.backend.entity.User;
 import org.example.backend.services.groupService.GroupService;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +34,7 @@ public class GroupController {
     @GetMapping("/{groupId}")
     public ResponseEntity<?> getStudentsByGroup(@PathVariable UUID groupId) {
         try{
-            List<User> students = groupService.getStudents(groupId);
+            List<StudentResDto> students = groupService.getStudents(groupId);
             return  ResponseEntity.ok(students);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());

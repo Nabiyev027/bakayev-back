@@ -1,6 +1,7 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dtoResponse.CourseSectionResDto;
 import org.example.backend.dtoResponse.CourseSectionWithCardDto;
 import org.example.backend.services.courseService.CourseService;
 import org.springframework.http.ResponseEntity;
@@ -21,18 +22,27 @@ public class CourseSectionController {
     public ResponseEntity<?> getCourseWithCard(@RequestParam String lang) {
         try {
             List<CourseSectionWithCardDto> allCourses = courseService.getAllCoursesWithCard(lang);
-            System.out.printf("getCourseWithCard: %s\n", allCourses );
             return ResponseEntity.ok(allCourses);
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PostMapping("/postCourse")
-    public ResponseEntity<?> addCourse(@RequestBody String title, @RequestBody String lang) {
+    @GetMapping
+    public ResponseEntity<?> getCourse() {
         try {
-            courseService.addCourse(title,lang);
-            return ResponseEntity.ok("Course added");
+            List<CourseSectionResDto> courseSectionResDtos = courseService.getCourses();
+            return ResponseEntity.ok(courseSectionResDtos);
+        }catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<?> addCourse(@RequestParam String titleUz, @RequestParam String titleRu, @RequestParam String titleEn) {
+        try {
+            courseService.addCourse(titleUz,titleRu,titleEn);
+            return ResponseEntity.ok("New Course added");
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -40,9 +50,9 @@ public class CourseSectionController {
 
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCourse(@PathVariable UUID id, @RequestBody String title, @RequestBody String lang) {
+    public ResponseEntity<?> updateCourse(@PathVariable UUID id, @RequestParam String titleUz, @RequestParam String titleRu, @RequestParam String titleEn) {
         try {
-            courseService.editCourse(id,title,lang);
+            courseService.editCourse(id,titleUz, titleRu, titleEn);
             return ResponseEntity.ok("Course updated");
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

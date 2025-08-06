@@ -2,8 +2,7 @@ package org.example.backend.services.courseService;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.Enum.Lang;
-import org.example.backend.dtoResponse.CourseCardDto;
-import org.example.backend.dtoResponse.CourseSectionWithCardDto;
+import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.CourseCard;
 import org.example.backend.entity.CourseCardTranslation;
 import org.example.backend.entity.CourseSection;
@@ -16,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,32 +26,80 @@ public class CourseServiceImpl implements CourseService{
 
 
     @Override
-    public void addCourse(String title, String lang) {
+    public void addCourse(String titleUz, String titleRu, String titleEn) {
         CourseSection courseSection = new CourseSection();
-        CourseSection saved = courseSectionRepo.save(courseSection); // ID generatsiya bo'ladi
+        CourseSection saved = courseSectionRepo.save(courseSection);
 
         // 2. CourseSectionTranslation yaratish
-        CourseSectionTranslation translation = new CourseSectionTranslation();
-        translation.setTitle(title);
-        translation.setLanguage(Lang.valueOf(lang));
-        translation.setCourseSection(saved); // Bog'lash
+        CourseSectionTranslation translationUz = new CourseSectionTranslation();
+        translationUz.setTitle(titleUz);
+        translationUz.setLanguage(Lang.UZ);
+        translationUz.setCourseSection(saved);
 
-        // 3. Saqlash
-        courseSectionTranslationRepo.save(translation);
+        CourseSectionTranslation translationRu = new CourseSectionTranslation();
+        translationRu.setTitle(titleRu);
+        translationRu.setLanguage(Lang.RU);
+        translationRu.setCourseSection(saved);
+
+        CourseSectionTranslation translationEn = new CourseSectionTranslation();
+        translationEn.setTitle(titleEn);
+        translationEn.setLanguage(Lang.EN);
+        translationEn.setCourseSection(saved);
+
+        courseSectionTranslationRepo.save(translationUz);
+        courseSectionTranslationRepo.save(translationRu);
+        courseSectionTranslationRepo.save(translationEn);
     }
 
+    @Transactional
     @Override
-    public void editCourse(UUID id, String title, String lang) {
-        // 1. CourseSection ni topish
+    public void editCourse(UUID id, String titleUz, String titleRu, String titleEn) {
         CourseSection courseSection = courseSectionRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("CourseSection not found with id: " + id));
 
         courseSection.getTranslations().forEach(translation -> {
-            if (translation.getLanguage().equals(Lang.valueOf(lang))) {
-                translation.setTitle(title);
-                courseSectionTranslationRepo.save(translation);
+            switch (translation.getLanguage()) {
+                case UZ -> {
+                    translation.setTitle(titleUz);
+                    translation.setLanguage(Lang.UZ);
+                }
+                case RU -> {
+                    translation.setTitle(titleRu);
+                    translation.setLanguage(Lang.RU);
+                }
+                case EN -> {
+                    translation.setTitle(titleEn);
+                    translation.setLanguage(Lang.EN);
+                }
             }
+            courseSectionTranslationRepo.save(translation);
         });
+    }
+
+    @Transactional
+    @Override
+    public List<CourseSectionResDto> getCourses() {
+        List<CourseSectionResDto> courseSectionResDtosList = new ArrayList<>();
+        courseSectionRepo.findAll().forEach(courseSection -> {
+            CourseSectionResDto courseSectionResDto = new CourseSectionResDto();
+            courseSectionResDto.setId(courseSection.getId());
+
+            List<CourseTranslationsResDto> translationDtos = courseSection.getTranslations()
+                    .stream()
+                    .map(translation -> {
+                        CourseTranslationsResDto dto = new CourseTranslationsResDto();
+                        dto.setId(translation.getId());
+                        dto.setTitle(translation.getTitle());
+                        dto.setLang(String.valueOf(translation.getLanguage()));
+                        return dto;
+                    }).collect(Collectors.toList());
+
+            courseSectionResDto.setTranslations(translationDtos);
+
+            courseSectionResDtosList.add(courseSectionResDto);
+        });
+
+        return courseSectionResDtosList;
     }
 
     @Override
@@ -100,6 +148,7 @@ public class CourseServiceImpl implements CourseService{
 
         return sectionsWithCardDtos;
     }
+
 
 
 

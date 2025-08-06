@@ -8,7 +8,7 @@ import java.util.UUID;
 public interface AboutService {
     AboutSectionDto getAbout(String lang);
 
-    void addAbout(MultipartFile img, String video, String description1, String description2, String lang);
+    void aboutPostAndUpdate(MultipartFile img, MultipartFile video, String description1, String description2, String lang);
 
     void editAbout(UUID id, MultipartFile img, String video, String description1, String description2, String lang);
 

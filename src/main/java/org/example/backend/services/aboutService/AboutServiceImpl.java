@@ -9,10 +9,14 @@ import org.example.backend.repository.AboutSectionRepo;
 import org.example.backend.repository.AboutSectionTranslationRepo;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -21,6 +25,7 @@ public class AboutServiceImpl implements AboutService{
     private final AboutSectionRepo aboutSectionRepo;
     private final AboutSectionTranslationRepo aboutSectionTranslationRepo;
 
+    @Transactional
     @Override
     public AboutSectionDto getAbout(String lang) {
         AboutSection found = aboutSectionRepo.findAll()
@@ -47,19 +52,42 @@ public class AboutServiceImpl implements AboutService{
     }
 
     @Override
-    public void addAbout(MultipartFile img, String video, String description1, String description2, String lang) {
-        AboutSection aboutSection = new AboutSection();
-        String path = createImage(img);
-        aboutSection.setImgUrl(path);
-        aboutSection.setVideoUrl(video);
-        AboutSection saved = aboutSectionRepo.save(aboutSection);
-        AboutSectionTranslation aboutSectionTranslation = new AboutSectionTranslation();
-        aboutSectionTranslation.setDescription1(description1);
-        aboutSectionTranslation.setDescription2(description2);
-        aboutSectionTranslation.setLanguage(Lang.valueOf(lang));
-        aboutSectionTranslation.setAboutSection(saved);
-        aboutSectionTranslationRepo.save(aboutSectionTranslation);
+    public void aboutPostAndUpdate(MultipartFile img, MultipartFile video, String description1, String description2, String lang) {
+        // 1. Mavjud AboutSection ni olish yoki yangi yaratish
+        AboutSection aboutSection = aboutSectionRepo.findTopByOrderByIdAsc()
+                .orElse(new AboutSection());
 
+        // 2. Rasm mavjud bo‘lsa, almashtirish yoki yaratish
+        if (img != null && !img.isEmpty()) {
+            String newImg = aboutSection.getImgUrl() != null
+                    ? replaceImage(aboutSection.getImgUrl(), img)
+                    : createImage(img);
+            aboutSection.setImgUrl(newImg);
+        }
+
+        // 3. Video mavjud bo‘lsa, almashtirish yoki yaratish
+        if (video != null && !video.isEmpty()) {
+            String newVid = aboutSection.getVideoUrl() != null
+                    ? replaceVideo(aboutSection.getVideoUrl(), video)
+                    : createVideo(video);
+            aboutSection.setVideoUrl(newVid);
+        }
+
+        // 4. AboutSection ni saqlaymiz
+        AboutSection saved = aboutSectionRepo.save(aboutSection);
+
+        // 5. Tarjima ma’lumotini olish yoki yangi yaratish
+        AboutSectionTranslation translation = aboutSectionTranslationRepo
+                .findByAboutSectionIdAndLanguage(saved.getId(), Lang.valueOf(lang))
+                .orElse(new AboutSectionTranslation());
+
+        translation.setDescription1(description1);
+        translation.setDescription2(description2);
+        translation.setLanguage(Lang.valueOf(lang));
+        translation.setAboutSection(saved);
+
+        // 6. Tarjimani saqlaymiz
+        aboutSectionTranslationRepo.save(translation);
     }
 
     @Override
@@ -94,50 +122,102 @@ public class AboutServiceImpl implements AboutService{
         aboutSectionRepo.delete(about);
     }
 
-
     private String replaceImage(String oldImgUrl, MultipartFile newImg) {
-        try {
-            // static papkaning to‘liq yo‘lini olish
-            File staticFolder = new ClassPathResource("static").getFile();
+        Optional.ofNullable(oldImgUrl)
+                .filter(url -> !url.isEmpty())
+                .map(url -> url.substring(url.lastIndexOf("/") + 1))
+                .map(fileName -> Paths.get(System.getProperty("user.dir"), "uploads", fileName))
+                .ifPresent(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException e) {
+                        System.err.println("Eski rasmni o‘chirishda xatolik: " + e.getMessage());
+                    }
+                });
 
-            // Eski rasmni o‘chirish
-            if (oldImgUrl != null && !oldImgUrl.isEmpty()) {
-                File oldImageFile = new File(staticFolder.getAbsolutePath() + oldImgUrl);
-                if (oldImageFile.exists()) {
-                    oldImageFile.delete();
-                }
-            }
-
-            // Yangi rasmni saqlash
-            return createImage(newImg);
-
-        } catch (IOException e) {
-            throw new RuntimeException("Rasmni almashtirishda xatolik yuz berdi", e);
-        }
+        return createImage(newImg);
     }
 
     private String createImage(MultipartFile img) {
         try {
-            // static/uploads papkasi joylashgan manzilni olish
-            File uploadsFolder = new ClassPathResource("static/uploads/").getFile();
+            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            File uploadsFolder = new File(uploadDir);
 
-            // Agar papka mavjud bo'lmasa - yaratamiz
             if (!uploadsFolder.exists()) {
                 uploadsFolder.mkdirs();
             }
 
-            // Unikal fayl nomi yaratamiz
             String uniqueFileName = UUID.randomUUID().toString() + "_" + img.getOriginalFilename();
-
-            // Faylni to'liq yo'liga saqlaymiz
             File destination = new File(uploadsFolder, uniqueFileName);
             img.transferTo(destination);
 
-            // Frontendda ko‘rsatish uchun nisbiy yo‘lni qaytaramiz
+            // Agar rasmlar frontend static fayllarida ko‘rsatilsa:
             return "/uploads/" + uniqueFileName;
 
         } catch (IOException e) {
-            throw new RuntimeException("Rasmni saqlab bo‘lmadi", e);
+            e.printStackTrace(); // Konsolda to‘liq xatoni ko‘rsatish uchun
+            throw new RuntimeException("Rasmni saqlab bo‘lmadi: " + e.getMessage(), e);
+        }
+
+    }
+
+    public void deleteImage(String imgUrl) {
+        if (imgUrl == null || imgUrl.isBlank()) return;
+
+        try {
+            // uploads papkaga yo‘l
+            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            File imageFile = new File(uploadDir + imgUrl.replace("/uploads", ""));
+
+            if (imageFile.exists()) {
+                boolean deleted = imageFile.delete();
+                if (!deleted) {
+                    System.err.println("❌ Rasmni o‘chirish muvaffaqiyatsiz: " + imageFile.getAbsolutePath());
+                }
+            } else {
+                System.err.println("⚠️ Rasm topilmadi: " + imageFile.getAbsolutePath());
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Rasmni o‘chirishda xatolik: " + e.getMessage());
+        }
+    }
+
+    private String replaceVideo(String oldVideoUrl, MultipartFile newVideo) {
+        Optional.ofNullable(oldVideoUrl)
+                .filter(url -> !url.isEmpty())
+                .map(url -> url.substring(url.lastIndexOf("/") + 1))
+                .map(fileName -> Paths.get(System.getProperty("user.dir"), "uploads/video", fileName))
+                .ifPresent(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException e) {
+                        System.err.println("Eski videoni o‘chirishda xatolik: " + e.getMessage());
+                    }
+                });
+
+        return createVideo(newVideo);
+    }
+
+    private String createVideo(MultipartFile video) {
+        try {
+            String uploadDir = System.getProperty("user.dir") + "/uploads/video";
+            File uploadsFolder = new File(uploadDir);
+
+            if (!uploadsFolder.exists()) {
+                uploadsFolder.mkdirs();
+            }
+
+            String uniqueFileName = UUID.randomUUID().toString() + "_" + video.getOriginalFilename();
+            File destination = new File(uploadsFolder, uniqueFileName);
+            video.transferTo(destination);
+
+            // Agar videolar frontend static fayllarida ko‘rsatilsa:
+            return "/uploads/video/" + uniqueFileName;
+
+        } catch (IOException e) {
+            e.printStackTrace(); // Konsolda to‘liq xatoni ko‘rsatish uchun
+            throw new RuntimeException("Videoni saqlab bo‘lmadi: " + e.getMessage(), e);
         }
     }
 }

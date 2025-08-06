@@ -1,5 +1,6 @@
 package org.example.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,10 +20,9 @@ public class ReferenceStatus {
     @JoinColumn(name = "referenceId", nullable = false, unique = true)
     private Reference reference;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JsonBackReference
     @JoinColumn(name = "receptionId", nullable = true)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private User receptionist;
 
     private boolean status;

@@ -7,7 +7,6 @@ import org.example.backend.entity.HomeSection;
 import org.example.backend.entity.HomeSectionTranslation;
 import org.example.backend.repository.HeaderSectionRepo;
 import org.example.backend.repository.HomeSectionTranslationRepo;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 

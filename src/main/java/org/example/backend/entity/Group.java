@@ -1,5 +1,6 @@
 package org.example.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -27,8 +28,9 @@ public class Group {
     private LocalTime startTime;
     private LocalTime endTime;
 
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
-    private List<Lesson> lessons = new ArrayList<>();
+    @OneToMany(mappedBy = "group",fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private List<Lesson> lessons;
 
     @ManyToOne(fetch = FetchType.EAGER)
     private Room room;
@@ -52,8 +54,7 @@ public class Group {
     )
     private List<User> students;
 
-//    @ManyToMany(mappedBy = "studentGroups")
-//    private List<User> students;
+
 
 
 }

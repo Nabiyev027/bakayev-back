@@ -50,12 +50,11 @@ public class DifferenceSectionController {
     @PutMapping("/update/{id}")
     public ResponseEntity<?> editDiference(@PathVariable UUID id,
                                            @RequestParam(value = "img", required = false) MultipartFile img,
-                                           @RequestParam(value = "oldImgUrl", required = false) String oldImgUrl,
                                            @RequestParam String titleUz, @RequestParam String descriptionUz,
                                            @RequestParam String titleRu, @RequestParam String descriptionRu,
                                            @RequestParam String titleEn, @RequestParam String descriptionEn){
         try{
-            differenceService.editDif(id,img,oldImgUrl,titleUz,descriptionUz,titleRu,descriptionRu,titleEn,descriptionEn);
+            differenceService.editDif(id,img,titleUz,descriptionUz,titleRu,descriptionRu,titleEn,descriptionEn);
             return ResponseEntity.ok("Success");
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());

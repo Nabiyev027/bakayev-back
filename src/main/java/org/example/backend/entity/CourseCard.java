@@ -23,6 +23,9 @@ public class CourseCard {
     @NotBlank
     private String imageUrl;
 
+    @NotNull
+    private Integer rating;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_section_id", nullable = false)
     private CourseSection courseSection;

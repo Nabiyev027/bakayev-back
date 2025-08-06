@@ -14,8 +14,7 @@ public interface DifferenceService {
 
     void deleteRef(UUID id);
 
-    void editDif(UUID id, MultipartFile img,
-                 String oldImgUrl, String titleUz, String descriptionUz,
+    void editDif(UUID id, MultipartFile img, String titleUz, String descriptionUz,
                  String titleRu, String descriptionRu,
                  String titleEn, String descriptionEn);
 

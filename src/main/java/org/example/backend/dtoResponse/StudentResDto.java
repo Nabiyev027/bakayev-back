@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Data
+
 public class StudentResDto {
     private UUID id;
     private String imgUrl;
@@ -15,4 +16,15 @@ public class StudentResDto {
     private FilialNameDto filialNameDto;
     private List<GroupsNamesDto> groups;
     private String username;
+
+
+    public StudentResDto(String firstName, String lastName, String phone,UUID id) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phone = phone;
+        this.id = id;
+    }
+    public StudentResDto() {
+
+    }
 }

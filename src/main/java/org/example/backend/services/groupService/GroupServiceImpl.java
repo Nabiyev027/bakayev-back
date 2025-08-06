@@ -4,14 +4,8 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.*;
-import org.example.backend.entity.Filial;
-import org.example.backend.entity.Group;
-import org.example.backend.entity.Room;
-import org.example.backend.entity.User;
-import org.example.backend.repository.FilialRepo;
-import org.example.backend.repository.GroupRepo;
-import org.example.backend.repository.RoomRepo;
-import org.example.backend.repository.UserRepo;
+import org.example.backend.entity.*;
+import org.example.backend.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +22,7 @@ public class GroupServiceImpl implements GroupService{
     private final RoomRepo roomRepo;
     private final UserRepo userRepo;
     private final FilialRepo filialRepo;
+    private final RoleRepo roleRepo;
 
     @Override
     public List<GroupsResDto> getGroupsWithData() {
@@ -177,10 +172,18 @@ public class GroupServiceImpl implements GroupService{
         groupRepo.delete(group); // endi xotirjam o'chsa bo'ladi
     }
 
-
     @Override
-    public List<User> getStudents(UUID groupId) {
-        return userRepo.getByGroupId(groupId);
+    @Transactional
+    public List<StudentResDto> getStudents(UUID groupId) {
+        Role roleStudent = roleRepo.findByName("ROLE_STUDENT").orElseThrow();
+        Group group = groupRepo.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found: " + groupId));
+        List<StudentProjection> usersByGroupAndRole = userRepo.findUsersByGroupAndRole(group, roleStudent);
+        List<StudentResDto> studentResDtoList = new ArrayList<>();
+        for (StudentProjection studentProjection : usersByGroupAndRole) {
+            StudentResDto studentResDto = new StudentResDto(studentProjection.getFirstName(),studentProjection.getLastName(),studentProjection.getPhone(),studentProjection.getId());
+            studentResDtoList.add(studentResDto);
+        }
+        return studentResDtoList;
     }
 
 }

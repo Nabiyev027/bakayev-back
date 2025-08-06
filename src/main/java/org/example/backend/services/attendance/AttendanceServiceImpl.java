@@ -12,6 +12,7 @@ import org.example.backend.repository.GroupRepo;
 import org.example.backend.repository.UserRepo;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;

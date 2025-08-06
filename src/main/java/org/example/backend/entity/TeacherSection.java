@@ -26,19 +26,21 @@ public class TeacherSection {
 
     @NotBlank
     @Column(nullable = false)
-    private String teacherName;
+    private String firstName;
+
+    @NotBlank
+    @Column(nullable = false)
+    private String lastName;
 
     @NotBlank
     @NotNull
     private String ieltsBall;
     @NotNull
     private String certificate;
-    @NotBlank
     @NotNull
-    private String experience;
-    @NotBlank
+    private Integer experience;
     @NotNull
-    private String numberOfStudents;
+    private Integer numberOfStudents;
 
     @OneToMany(mappedBy = "teacherSection", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TeacherSectionTranslation> translations;

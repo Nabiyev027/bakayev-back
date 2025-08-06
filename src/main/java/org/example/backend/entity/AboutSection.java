@@ -16,14 +16,12 @@ import java.util.UUID;
 public class AboutSection {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID uuid;
+    private UUID id;
 
-    @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String imgUrl;
 
-    @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String videoUrl;
 
 

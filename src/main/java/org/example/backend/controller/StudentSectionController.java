@@ -1,6 +1,7 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dtoResponse.StudentSectionResDto;
 import org.example.backend.entity.StudentSection;
 import org.example.backend.services.studentService.StudentService;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ public class StudentSectionController {
     @GetMapping
     public ResponseEntity<?> getStudentInfo() {
         try {
-            List<StudentSection> studentInfo = studentService.getStudentInfo();
+            List<StudentSectionResDto> studentInfo = studentService.getStudentInfo();
             return ResponseEntity.ok(studentInfo);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -30,10 +31,10 @@ public class StudentSectionController {
 
     @PostMapping
     public ResponseEntity<?> postStudentInfo(@RequestParam MultipartFile img, @RequestParam String name,
-                                             @RequestParam String listening, @RequestParam String writing,
-                                             @RequestParam String reading,
-                                             @RequestParam String speaking,
-                                             @RequestParam String overall) {
+                                             @RequestParam Double listening, @RequestParam Double writing,
+                                             @RequestParam Double reading,
+                                             @RequestParam Double speaking,
+                                             @RequestParam Double overall) {
         try {
             studentService.addStudent(img, name, listening, reading, writing, speaking, overall);
             return ResponseEntity.ok("Successfully added Student");
@@ -43,10 +44,10 @@ public class StudentSectionController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> editStudentInfo(@PathVariable UUID id, @RequestParam MultipartFile img,
-                                             @RequestParam String name, @RequestParam String listening,
-                                             @RequestParam String writing, @RequestParam String reading,
-                                             @RequestParam String speaking, @RequestParam String overall) {
+    public ResponseEntity<?> editStudentInfo(@PathVariable UUID id, @RequestParam(required = false) MultipartFile img,
+                                             @RequestParam String name, @RequestParam Double listening,
+                                             @RequestParam Double writing, @RequestParam Double reading,
+                                             @RequestParam Double speaking, @RequestParam Double overall) {
         try {
             studentService.updateStudent(id, img,name,listening,writing,reading,speaking,overall);
             return ResponseEntity.ok("Successfully updated Student");

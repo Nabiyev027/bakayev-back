@@ -1,14 +1,19 @@
 package org.example.backend.services.studentService;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dtoResponse.StudentSectionResDto;
 import org.example.backend.entity.StudentSection;
 import org.example.backend.repository.StudentSectionRepo;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,10 +25,12 @@ public class StudentServiceImpl implements StudentService {
     private final StudentSectionRepo studentSectionRepo;
 
     @Override
-    public void addStudent(MultipartFile img, String name, String listening, String reading, String writing, String speaking, String overall) {
+    public void addStudent(MultipartFile img, String name, Double listening, Double reading, Double writing, Double speaking, Double overall) {
         StudentSection studentSection = new StudentSection();
-        String path = createImage(img);
-        studentSection.setImgUrl(path);
+        if(img != null && !img.isEmpty() ) {
+            String path = createImage(img);
+            studentSection.setImgUrl(path);
+        }
         studentSection.setName(name);
         studentSection.setListening(listening);
         studentSection.setReading(reading);
@@ -33,18 +40,36 @@ public class StudentServiceImpl implements StudentService {
         studentSectionRepo.save(studentSection);
     }
 
+    @Transactional
     @Override
-    public List<StudentSection> getStudentInfo() {
-        return studentSectionRepo.findAll();
+    public List<StudentSectionResDto> getStudentInfo() {
+        List<StudentSection> all = studentSectionRepo.findAll();
+        List<StudentSectionResDto> studentSectionResDtos = new ArrayList<>();
+
+        all.forEach(student -> {
+            StudentSectionResDto studentSection = new StudentSectionResDto();
+            studentSection.setId(student.getId());
+            studentSection.setImgUrl(student.getImgUrl());
+            studentSection.setName(student.getName());
+            studentSection.setListening(student.getListening());
+            studentSection.setReading(student.getReading());
+            studentSection.setWriting(student.getWriting());
+            studentSection.setSpeaking(student.getSpeaking());
+            studentSection.setOverall(student.getOverall());
+            studentSectionResDtos.add(studentSection);
+        });
+
+        return studentSectionResDtos;
     }
 
+    @Transactional
     @Override
-    public void updateStudent(UUID id,MultipartFile img,String name, String listening, String reading, String writing, String speaking, String overall) {
+    public void updateStudent(UUID id, MultipartFile img,String name, Double listening, Double reading, Double writing, Double speaking, Double overall) {
         StudentSection student = studentSectionRepo.findById(id).orElseThrow(() ->
-                new RuntimeException("O‘qituvchi topilmadi: " + id));
+                new RuntimeException("Student topilmadi: " + id));
 
         if (img != null && !img.isEmpty()) {
-            String oldImgUrl = student.getImgUrl(); // Teacher entityda rasm yo‘li bo‘lishi kerak
+            String oldImgUrl = student.getImgUrl();
             String newImgUrl = replaceImage(oldImgUrl, img);
             student.setImgUrl(newImgUrl);
         }
@@ -59,78 +84,74 @@ public class StudentServiceImpl implements StudentService {
 
     }
 
+    @Transactional
     @Override
     public void deleteStudent(UUID id) {
-        Optional<StudentSection> optionalStudent = studentSectionRepo.findById(id);
-        if (optionalStudent.isPresent()) {
-            StudentSection student = optionalStudent.get();
+        StudentSection studentSection = studentSectionRepo.findById(id)
+                .orElseThrow(()-> new RuntimeException("Student topilmadi: " + id));
+        deleteImage(studentSection.getImgUrl());
+        studentSectionRepo.deleteById(studentSection.getId());
 
-            // Rasmni o‘chirish
-            String imageUrl = student.getImgUrl(); // Faraz qilaylik `imageUrl` degan field bor
-            deleteImage(imageUrl);
-
-            // Studentni o‘chirish
-            studentSectionRepo.deleteById(id);
-        }
-    }
-
-    private void deleteImage(String imgUrl) {
-        try {
-            if (imgUrl != null && !imgUrl.isEmpty()) {
-                File staticFolder = new ClassPathResource("static").getFile();
-                File imageFile = new File(staticFolder.getAbsolutePath() + imgUrl);
-                if (imageFile.exists()) {
-                    imageFile.delete();
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Rasmni o‘chirishda xatolik yuz berdi", e);
-        }
     }
 
     private String replaceImage(String oldImgUrl, MultipartFile newImg) {
-        try {
-            // static papkaning to‘liq yo‘lini olish
-            File staticFolder = new ClassPathResource("static").getFile();
+        Optional.ofNullable(oldImgUrl)
+                .filter(url -> !url.isEmpty())
+                .map(url -> url.substring(url.lastIndexOf("/") + 1))
+                .map(fileName -> Paths.get(System.getProperty("user.dir"), "uploads", fileName))
+                .ifPresent(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException e) {
+                        System.err.println("Eski rasmni o‘chirishda xatolik: " + e.getMessage());
+                    }
+                });
 
-            // Eski rasmni o‘chirish
-            if (oldImgUrl != null && !oldImgUrl.isEmpty()) {
-                File oldImageFile = new File(staticFolder.getAbsolutePath() + oldImgUrl);
-                if (oldImageFile.exists()) {
-                    oldImageFile.delete();
-                }
-            }
-
-            // Yangi rasmni saqlash
-            return createImage(newImg);
-
-        } catch (IOException e) {
-            throw new RuntimeException("Rasmni almashtirishda xatolik yuz berdi", e);
-        }
+        return createImage(newImg);
     }
 
     private String createImage(MultipartFile img) {
         try {
-            // static/uploads papkasi joylashgan manzilni olish
-            File uploadsFolder = new ClassPathResource("static/uploads/").getFile();
+            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            File uploadsFolder = new File(uploadDir);
 
-            // Agar papka mavjud bo'lmasa - yaratamiz
             if (!uploadsFolder.exists()) {
                 uploadsFolder.mkdirs();
             }
 
-            // Unikal fayl nomi yaratamiz
             String uniqueFileName = UUID.randomUUID().toString() + "_" + img.getOriginalFilename();
-
-            // Faylni to'liq yo'liga saqlaymiz
             File destination = new File(uploadsFolder, uniqueFileName);
             img.transferTo(destination);
 
-            // Frontendda ko‘rsatish uchun nisbiy yo‘lni qaytaramiz
+            // Agar rasmlar frontend static fayllarida ko‘rsatilsa:
             return "/uploads/" + uniqueFileName;
 
         } catch (IOException e) {
-            throw new RuntimeException("Rasmni saqlab bo‘lmadi", e);
+            e.printStackTrace(); // Konsolda to‘liq xatoni ko‘rsatish uchun
+            throw new RuntimeException("Rasmni saqlab bo‘lmadi: " + e.getMessage(), e);
+        }
+
+    }
+
+    public void deleteImage(String imgUrl) {
+        if (imgUrl == null || imgUrl.isBlank()) return;
+
+        try {
+            // uploads papkaga yo‘l
+            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            File imageFile = new File(uploadDir + imgUrl.replace("/uploads", ""));
+
+            if (imageFile.exists()) {
+                boolean deleted = imageFile.delete();
+                if (!deleted) {
+                    System.err.println("❌ Rasmni o‘chirish muvaffaqiyatsiz: " + imageFile.getAbsolutePath());
+                }
+            } else {
+                System.err.println("⚠️ Rasm topilmadi: " + imageFile.getAbsolutePath());
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Rasmni o‘chirishda xatolik: " + e.getMessage());
         }
     }
 

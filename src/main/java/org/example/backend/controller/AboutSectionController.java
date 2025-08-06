@@ -29,9 +29,14 @@ public class AboutSectionController {
     }
 
     @PostMapping
-    public ResponseEntity<?> postAbout(@RequestParam MultipartFile img, @RequestParam String video, @RequestParam String description1, @RequestParam String description2, @RequestParam String lang){
+    public ResponseEntity<?> aboutPostAndUpdate(
+            @RequestParam(required = false) MultipartFile img,
+                                                @RequestParam(required = false) MultipartFile video,
+                                                @RequestParam String description1,
+                                                @RequestParam String description2,
+                                                @RequestParam String lang){
         try {
-            aboutService.addAbout(img,video,description1,description2,lang);
+            aboutService.aboutPostAndUpdate(img,video,description1,description2,lang);
             return ResponseEntity.ok("Successfully added about");
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());

@@ -25,25 +25,24 @@ public class StudentSection {
     @Column(nullable = false)
     private String name;
 
-    @NotBlank
-    @Column(nullable = false)
-    private String listening;
 
-    @NotBlank
     @Column(nullable = false)
-    private String reading;
+    private Double listening;
 
-    @NotBlank
-    @Column(nullable = false)
-    private String writing;
 
-    @NotBlank
     @Column(nullable = false)
-    private String speaking;
+    private Double reading;
 
-    @NotBlank
+
     @Column(nullable = false)
-    private String overall;
+    private Double writing;
+
+
+    @Column(nullable = false)
+    private Double speaking;
+
+    @Column(nullable = false)
+    private Double overall;
 
 
 }

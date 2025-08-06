@@ -1,10 +1,11 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.backend.entity.CourseCard;
+import org.example.backend.dtoResponse.CourseCardResDto;
 import org.example.backend.services.courseCardService.CourseCardService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,20 +18,23 @@ public class CourseCardController {
 
     private final CourseCardService courseCardService;
 
-    @GetMapping("/getAll")
-    public ResponseEntity<?> getCourseCards() {
+    @GetMapping("/{CourseId}")
+    public ResponseEntity<?> getCourseCards(@PathVariable UUID CourseId) {
         try {
-            List<CourseCard> allCards = courseCardService.getAllCards();
+            List<CourseCardResDto> allCards = courseCardService.getAllCards(CourseId);
+            System.out.println(allCards);
             return ResponseEntity.ok(allCards);
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PostMapping("/postCourseCard")
-    public ResponseEntity<?> addCourseCard(@RequestBody String title, @RequestBody String lang) {
+    @PostMapping("/{perId}")
+    public ResponseEntity<?> addCourseCard(@PathVariable UUID perId, @RequestParam MultipartFile img,
+                                           @RequestParam String titleUz, @RequestParam String titleRu,
+                                           @RequestParam String titleEn, @RequestParam Integer rating) {
         try {
-            courseCardService.addCourseCard(title,lang);
+            courseCardService.addCourseCard(perId, img, titleUz, titleRu, titleEn, rating);
             return ResponseEntity.ok("CourseCard added");
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -39,9 +43,12 @@ public class CourseCardController {
 
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCourseCard(@PathVariable UUID id, @RequestBody String title, @RequestBody String lang) {
+    public ResponseEntity<?> updateCourseCard(@PathVariable UUID id,
+                                              @RequestParam(required = false) MultipartFile img,
+                                              @RequestParam String titleUz, @RequestParam String titleRu,
+                                              @RequestParam String titleEn, @RequestParam Integer rating) {
         try {
-            courseCardService.editCourseCard(id,title,lang);
+            courseCardService.editCourseCard(id,img,titleUz,titleRu,titleEn,rating);
             return ResponseEntity.ok("Course updated");
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

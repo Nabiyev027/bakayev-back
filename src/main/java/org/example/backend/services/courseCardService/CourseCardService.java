@@ -1,16 +1,19 @@
 package org.example.backend.services.courseCardService;
 
-import org.example.backend.entity.CourseCard;
+import org.example.backend.dtoResponse.CourseCardResDto;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface CourseCardService {
-    void addCourseCard(String title, String lang);
+    void addCourseCard(UUID perId, MultipartFile img, String titleUz, String titleRu, String titleEn, Integer rating);
 
-    void editCourseCard(UUID id, String title, String lang);
+    void editCourseCard(UUID id, MultipartFile img,
+                        String titleUz, String titleRu,
+                        String titleEn, Integer rating);
 
-    List<CourseCard> getAllCards();
+    List<CourseCardResDto> getAllCards(UUID courseId);
 
     void delete(UUID id);
 }

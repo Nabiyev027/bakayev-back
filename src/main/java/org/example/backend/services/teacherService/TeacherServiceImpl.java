@@ -2,21 +2,27 @@ package org.example.backend.services.teacherService;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.Enum.Lang;
-import org.example.backend.dto.TeacherSectionDto;
+import org.example.backend.dtoResponse.TeacherSectionResDto;
+import org.example.backend.dtoResponse.TeacherSectionTranslationResDto;
 import org.example.backend.entity.TeacherSection;
 import org.example.backend.entity.TeacherSectionTranslation;
 import org.example.backend.repository.TeacherSectionRepo;
 import org.example.backend.repository.TeacherSectionTranslationRepo;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,27 +32,43 @@ public class TeacherServiceImpl implements TeacherService {
     private final TeacherSectionTranslationRepo teacherSectionTranslationRepo;
 
     @Override
-    public void addInfo(MultipartFile img, String teacherName, String ieltsBall, String certificate, String experience, String numberOfStudents, String description, String lang) {
-
+    public void addInfo(MultipartFile img, String firstName, String lastName, String ieltsBall, String certificate, Integer experience, Integer numberOfStudents, String descriptionUz, String descriptionRu, String descriptionEn) {
         TeacherSection teacherSection = new TeacherSection();
-        teacherSection.setTeacherName(teacherName);
+        teacherSection.setFirstName(firstName);
+        teacherSection.setLastName(lastName);
         teacherSection.setIeltsBall(ieltsBall);
         teacherSection.setCertificate(certificate);
         teacherSection.setExperience(experience);
         teacherSection.setNumberOfStudents(numberOfStudents);
-        String path = createImage(img);
-        teacherSection.setImgUrl(path);
+        if (img != null && !img.isEmpty()) {
+            String imgPath = createImage(img);
+            teacherSection.setImgUrl(imgPath);
+        }
         TeacherSection saved = teacherSectionRepo.save(teacherSection);
 
-        TeacherSectionTranslation teacherSectionTranslation = new TeacherSectionTranslation();
-        teacherSectionTranslation.setDescription(description);
-        teacherSectionTranslation.setLanguage(Lang.valueOf(lang));
-        teacherSectionTranslation.setTeacherSection(saved);
-        teacherSectionTranslationRepo.save(teacherSectionTranslation);
+        TeacherSectionTranslation uzTranslation = new TeacherSectionTranslation();
+        uzTranslation.setDescription(descriptionUz);
+        uzTranslation.setLanguage(Lang.UZ);
+        uzTranslation.setTeacherSection(saved);
+        teacherSectionTranslationRepo.save(uzTranslation);
+
+        TeacherSectionTranslation ruTranslation = new TeacherSectionTranslation();
+        ruTranslation.setDescription(descriptionRu);
+        ruTranslation.setLanguage(Lang.RU);
+        ruTranslation.setTeacherSection(saved);
+        teacherSectionTranslationRepo.save(ruTranslation);
+
+        TeacherSectionTranslation enTranslation = new TeacherSectionTranslation();
+        enTranslation.setDescription(descriptionEn);
+        enTranslation.setLanguage(Lang.EN);
+        enTranslation.setTeacherSection(saved);
+        teacherSectionTranslationRepo.save(enTranslation);
+
     }
 
+    @Transactional
     @Override
-    public void updateInfo(UUID id, MultipartFile img, String teacherName, String ieltsBall, String certificate, String experience, String numberOfStudents, String description, String lang) {
+    public void updateInfo(UUID id, MultipartFile img, String firstname, String lastName, String ieltsBall, String certificate, Integer experience, Integer numberOfStudents, String descriptionUz, String descriptionRu, String descriptionEn) {
 
         TeacherSection teacher = teacherSectionRepo.findById(id).orElseThrow(() ->
                 new RuntimeException("O‘qituvchi topilmadi: " + id));
@@ -57,57 +79,72 @@ public class TeacherServiceImpl implements TeacherService {
             teacher.setImgUrl(newImgUrl);
         }
 
-        teacher.setTeacherName(teacherName);
+        teacher.setFirstName(firstname);
+        teacher.setLastName(lastName);
         teacher.setIeltsBall(ieltsBall);
         teacher.setCertificate(certificate);
         teacher.setExperience(experience);
         teacher.setNumberOfStudents(numberOfStudents);
 
-        teacher.getTranslations().forEach(translation -> {
-            if(translation.getLanguage().equals(Lang.valueOf(lang))) {
-                translation.setDescription(description);
-                teacherSectionTranslationRepo.save(translation);
+        teacher.getTranslations().forEach(translation->{
+            switch (translation.getLanguage()) {
+                case UZ -> {
+                    translation.setDescription(descriptionUz);
+                }
+                case RU -> {
+                    translation.setLanguage(Lang.RU);
+                }
+                case EN -> {
+                    translation.setDescription(descriptionEn);
+                }
             }
+            teacherSectionTranslationRepo.save(translation);
         });
 
-        // Ma’lumotni saqlash
+
         teacherSectionRepo.save(teacher);
     }
 
+    @Transactional
     @Override
     public void deleteTeacher(UUID id) {
         TeacherSection teacherSection = teacherSectionRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("TeacherSection topilmadi: " + id));
 
-        // Translationlarni o‘chirish
         for (TeacherSectionTranslation translation : teacherSection.getTranslations()) {
             teacherSectionTranslationRepo.deleteById(translation.getId());
         }
-
-        // Asosiy TeacherSection ni o‘chirish
+        deleteImage(teacherSection.getImgUrl());
         teacherSectionRepo.deleteById(id);
     }
 
+    @Transactional
     @Override
-    public List<TeacherSectionDto> getInfo(String lang) {
-        List<TeacherSectionDto> teacherSectionDtos = new ArrayList<>();
+    public List<TeacherSectionResDto> getTeacherSections() {
+        List<TeacherSectionResDto> teacherSectionDtos = new ArrayList<>();
 
         for (TeacherSection teacher : teacherSectionRepo.findAll()) {
-            TeacherSectionDto dto = new TeacherSectionDto();
+            TeacherSectionResDto dto = new TeacherSectionResDto();
             dto.setId(teacher.getId());
-            dto.setName(teacher.getTeacherName());
+            dto.setImgUrl(teacher.getImgUrl());
+            dto.setFirstName(teacher.getFirstName());
+            dto.setLastName(teacher.getLastName());
             dto.setIeltsBall(teacher.getIeltsBall());
             dto.setCertificate(teacher.getCertificate());
             dto.setExperience(teacher.getExperience());
             dto.setNumberOfStudents(teacher.getNumberOfStudents());
 
-            // Tarjimani topamiz
-            Optional<TeacherSectionTranslation> matchedTranslation = teacher.getTranslations()
-                    .stream()
-                    .filter(t -> t.getLanguage().name().equalsIgnoreCase(lang))
-                    .findFirst();
+            List<TeacherSectionTranslationResDto> translationDtos = teacher.getTranslations()
+                            .stream()
+                                    .map(translation->{
+                                        TeacherSectionTranslationResDto dto1 = new TeacherSectionTranslationResDto();
+                                        dto1.setId(translation.getId());
+                                        dto1.setDescription(translation.getDescription());
+                                        dto1.setLang(String.valueOf(translation.getLanguage()));
+                                        return dto1;
+                                    }).collect(Collectors.toList());
 
-            matchedTranslation.ifPresent(t -> dto.setDescription(t.getDescription()));
+            dto.setTranslations(translationDtos);
 
             teacherSectionDtos.add(dto);
         }
@@ -115,50 +152,64 @@ public class TeacherServiceImpl implements TeacherService {
         return teacherSectionDtos;
     }
 
-
     private String replaceImage(String oldImgUrl, MultipartFile newImg) {
-        try {
-            // static papkaning to‘liq yo‘lini olish
-            File staticFolder = new ClassPathResource("static").getFile();
+        Optional.ofNullable(oldImgUrl)
+                .filter(url -> !url.isEmpty())
+                .map(url -> url.substring(url.lastIndexOf("/") + 1))
+                .map(fileName -> Paths.get(System.getProperty("user.dir"), "uploads", fileName))
+                .ifPresent(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException e) {
+                        System.err.println("Eski rasmni o‘chirishda xatolik: " + e.getMessage());
+                    }
+                });
 
-            // Eski rasmni o‘chirish
-            if (oldImgUrl != null && !oldImgUrl.isEmpty()) {
-                File oldImageFile = new File(staticFolder.getAbsolutePath() + oldImgUrl);
-                if (oldImageFile.exists()) {
-                    oldImageFile.delete();
-                }
-            }
-
-            // Yangi rasmni saqlash
-            return createImage(newImg);
-
-        } catch (IOException e) {
-            throw new RuntimeException("Rasmni almashtirishda xatolik yuz berdi", e);
-        }
+        return createImage(newImg);
     }
 
     private String createImage(MultipartFile img) {
         try {
-            // static/uploads papkasi joylashgan manzilni olish
-            File uploadsFolder = new ClassPathResource("static/uploads/").getFile();
+            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            File uploadsFolder = new File(uploadDir);
 
-            // Agar papka mavjud bo'lmasa - yaratamiz
             if (!uploadsFolder.exists()) {
                 uploadsFolder.mkdirs();
             }
 
-            // Unikal fayl nomi yaratamiz
             String uniqueFileName = UUID.randomUUID().toString() + "_" + img.getOriginalFilename();
-
-            // Faylni to'liq yo'liga saqlaymiz
             File destination = new File(uploadsFolder, uniqueFileName);
             img.transferTo(destination);
 
-            // Frontendda ko‘rsatish uchun nisbiy yo‘lni qaytaramiz
+            // Agar rasmlar frontend static fayllarida ko‘rsatilsa:
             return "/uploads/" + uniqueFileName;
 
         } catch (IOException e) {
-            throw new RuntimeException("Rasmni saqlab bo‘lmadi", e);
+            e.printStackTrace(); // Konsolda to‘liq xatoni ko‘rsatish uchun
+            throw new RuntimeException("Rasmni saqlab bo‘lmadi: " + e.getMessage(), e);
+        }
+
+    }
+
+    public void deleteImage(String imgUrl) {
+        if (imgUrl == null || imgUrl.isBlank()) return;
+
+        try {
+            // uploads papkaga yo‘l
+            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            File imageFile = new File(uploadDir + imgUrl.replace("/uploads", ""));
+
+            if (imageFile.exists()) {
+                boolean deleted = imageFile.delete();
+                if (!deleted) {
+                    System.err.println("❌ Rasmni o‘chirish muvaffaqiyatsiz: " + imageFile.getAbsolutePath());
+                }
+            } else {
+                System.err.println("⚠️ Rasm topilmadi: " + imageFile.getAbsolutePath());
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Rasmni o‘chirishda xatolik: " + e.getMessage());
         }
     }
 

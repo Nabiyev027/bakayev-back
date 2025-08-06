@@ -81,8 +81,7 @@ public class DifferenceServiceImpl implements DifferenceService {
 
     @Transactional
     @Override
-    public void editDif(UUID id, MultipartFile img,
-                        String oldImgUrl, String titleUz, String descriptionUz,
+    public void editDif(UUID id, MultipartFile img, String titleUz, String descriptionUz,
                         String titleRu, String descriptionRu,
                         String titleEn, String descriptionEn) {
 
@@ -93,8 +92,6 @@ public class DifferenceServiceImpl implements DifferenceService {
         if (img != null && !img.isEmpty()) {
             String newImageUrl = replaceImage(differenceSection.getImgUrl(), img);
             differenceSection.setImgUrl(newImageUrl);
-        } else if (oldImgUrl != null && !oldImgUrl.isBlank()) {
-            differenceSection.setImgUrl(oldImgUrl); // eski rasmni saqlab qolamiz
         }
 
         // Tarjimalarni yangilash
