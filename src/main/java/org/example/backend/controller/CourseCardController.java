@@ -22,7 +22,6 @@ public class CourseCardController {
     public ResponseEntity<?> getCourseCards(@PathVariable UUID CourseId) {
         try {
             List<CourseCardResDto> allCards = courseCardService.getAllCards(CourseId);
-            System.out.println(allCards);
             return ResponseEntity.ok(allCards);
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

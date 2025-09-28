@@ -1,15 +1,22 @@
 package org.example.backend.services.lessonService;
 
 import lombok.RequiredArgsConstructor;
-import org.example.backend.entity.Group;
-import org.example.backend.entity.Lesson;
-import org.example.backend.repository.GroupRepo;
-import org.example.backend.repository.LessonRepo;
+import org.example.backend.dto.StudentMarkDto;
+import org.example.backend.dtoResponse.LessonGroupResDto;
+import org.example.backend.dtoResponse.LessonStudentMarksResDto;
+import org.example.backend.dtoResponse.LessonStudentResDto;
+import org.example.backend.dtoResponse.StudentProjection;
+import org.example.backend.entity.*;
+import org.example.backend.repository.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -17,37 +24,160 @@ public class LessonServiceImpl implements LessonService{
 
     private final GroupRepo groupRepo;
     private final LessonRepo lessonRepo;
+    private final UserRepo userRepo;
+    private final LessonMarkRepo lessonMarkRepo;
+    private final LessonTypeRepo lessonTypeRepo;
+    private final RoleRepo roleRepo;
 
+    @Transactional
     @Override
-    public List<Lesson> getLessons(UUID groupId) {
-        Group group = groupRepo.findById(groupId)
-                .orElseThrow(() -> new RuntimeException("Group not found"));
+    public LessonGroupResDto getLessons(UUID groupId) {
+        List<Object[]> rows = lessonRepo.getLessonGroupWithStudents(groupId);
 
-        return lessonRepo.getByGroup(group);
+        LessonGroupResDto lessonDto = new LessonGroupResDto();
+        lessonDto.setStudentsWithResults(new ArrayList<>());
+
+        Map<UUID, LessonStudentResDto> studentMap = new LinkedHashMap<>();
+
+        for (Object[] row : rows) {
+            // indexlar siz oldin yozgan native query ga mos: 0..7
+            Object gIdObj = row[0];
+            Object startObj = row[1];
+            Object endObj = row[2];
+            Object studentIdObj = row[3];
+            Object studentNameObj = row[4];
+            Object markIdObj = row[5];
+            Object typeNameObj = row[6];
+            Object markObj = row[7];
+
+            // xavfsiz konvertatsiyalar
+            LocalTime startTime = toLocalTime(startObj);
+            LocalTime endTime = toLocalTime(endObj);
+            UUID studentId = toUUID(studentIdObj);
+            UUID markId = toUUID(markIdObj); // null bo'lsa null qaytaradi
+            String studentName = studentNameObj == null ? null : studentNameObj.toString();
+            String typeName = typeNameObj == null ? null : typeNameObj.toString();
+            Integer mark = toInteger(markObj);
+
+            // guruh vaqtlarini bir martada o'rnatamiz (row lar takrorlanadi)
+            if (lessonDto.getStartTime() == null) lessonDto.setStartTime(startTime);
+            if (lessonDto.getEndTime() == null) lessonDto.setEndTime(endTime);
+
+            // student obyektini map ga qo'shish / topish
+            LessonStudentResDto studentDto = studentMap.computeIfAbsent(studentId, id -> {
+                LessonStudentResDto dto = new LessonStudentResDto();
+                dto.setId(id);
+                dto.setName(studentName);
+                dto.setLessonMarks(new ArrayList<>());
+                return dto;
+            });
+
+            if (markId != null) {
+                LessonStudentMarksResDto markDto = new LessonStudentMarksResDto();
+                markDto.setId(markId);
+                markDto.setTypeName(typeName);
+                markDto.setMark(mark);
+                studentDto.getLessonMarks().add(markDto);
+            }
+        }
+
+        lessonDto.setStudentsWithResults(new ArrayList<>(studentMap.values()));
+        return lessonDto;
     }
 
-    @Override
-    public void postLesson(UUID groupId, String lessonTypes) {
-        Group group = groupRepo.findById(groupId)
-                .orElseThrow(() -> new RuntimeException("Group not found"));
-
-            Lesson lesson1 = new Lesson();
-            lesson1.setType(lessonTypes);
-            lesson1.setGroup(group);
-            lessonRepo.save(lesson1);
-
+    // --- Helper konvertorlar ---
+    private LocalTime toLocalTime(Object o) {
+        if (o == null) return null;
+        if (o instanceof LocalTime) return (LocalTime) o;
+        if (o instanceof Time) return ((Time) o).toLocalTime();
+        if (o instanceof Timestamp) return ((Timestamp) o).toLocalDateTime().toLocalTime();
+        // ba'zan DB String qaytarishi mumkin
+        return LocalTime.parse(o.toString());
     }
 
-    @Override
-    public void editLesson(UUID lessonId, String lessonType) {
-        Lesson lesson = lessonRepo.findById(lessonId).get();
-        lesson.setType(lessonType);
-        lessonRepo.save(lesson);
+    private UUID toUUID(Object o) {
+        if (o == null) return null;
+        if (o instanceof UUID) return (UUID) o;
+        return UUID.fromString(o.toString());
     }
 
+    private Integer toInteger(Object o) {
+        if (o == null) return null;
+        if (o instanceof Integer) return (Integer) o;
+        if (o instanceof Number) return ((Number) o).intValue();
+        return Integer.valueOf(o.toString());
+    }
+
+
+
     @Override
-    public void deletelesson(UUID id) {
+    public void deleteLesson(UUID id) {
         lessonRepo.deleteById(id);
     }
+
+    @Transactional
+    @Override
+    public void changeTime(UUID groupId, String startTime, String endTime) {
+        Group group = groupRepo.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found: " + groupId));
+
+        group.setStartTime(LocalTime.parse(startTime));
+        group.setEndTime(LocalTime.parse(endTime));
+
+        groupRepo.save(group);
+    }
+
+    @Transactional
+    @Override
+    public void markStudents(UUID groupId, List<StudentMarkDto> studentMarks) {
+        // 1) Guruhni topish
+        Group group = groupRepo.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        LocalDate today = LocalDate.now();
+
+        // 2) Bugungi dars shu group uchun mavjudmi?
+        Lesson lesson = lessonRepo.findByGroupIdAndDate(groupId, today)
+                .orElse(null);
+
+        if (lesson == null) {
+            // Agar mavjud bo‘lmasa yangi Lesson yaratamiz
+            lesson = new Lesson();
+            lesson.setGroup(group);
+            lesson.setDate(today);
+            lesson = lessonRepo.save(lesson);
+        }
+
+        // 3) Har bir student uchun mark qo‘shamiz yoki yangilaymiz
+        for (StudentMarkDto dto : studentMarks) {
+            User student = userRepo.findById(dto.getStudentId())
+                    .orElseThrow(() -> new RuntimeException("Student not found"));
+
+            LessonTypes type = lessonTypeRepo.findById(dto.getTypeId())
+                    .orElseThrow(() -> new RuntimeException("Lesson type not found"));
+
+            // Shu student va shu type bo‘yicha baho mavjudmi?
+            LessonMarks existingMark = lessonMarkRepo
+                    .findByLessonIdAndStudentIdAndTypeName(lesson.getId(), student.getId(), type.getName())
+                    .orElse(null);
+
+            if (existingMark != null) {
+                // Mavjud bo‘lsa — update
+                existingMark.setMark(dto.getMark());
+                lessonMarkRepo.save(existingMark);
+            } else {
+                // Mavjud bo‘lmasa — yangi baho qo‘shamiz
+                LessonMarks mark = new LessonMarks();
+                mark.setLesson(lesson);
+                mark.setStudent(student);
+                mark.setTypeName(type.getName());
+                mark.setMark(dto.getMark());
+                lessonMarkRepo.save(mark);
+            }
+        }
+    }
+
+
+
 
 }

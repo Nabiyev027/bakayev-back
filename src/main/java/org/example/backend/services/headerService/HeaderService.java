@@ -1,12 +1,10 @@
 package org.example.backend.services.headerService;
 
-import org.example.backend.dto.HeaderSectionDto;
+import org.example.backend.dtoResponse.HeaderSectionDto;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.UUID;
-
 public interface HeaderService {
-    void postOrEdit(String title, MultipartFile img, String lang);
+    void postOrEdit(MultipartFile img, String titleUz, String titleRu, String titleEn);
 
-    HeaderSectionDto getHeader(String lang);
+    HeaderSectionDto getHeader();
 }

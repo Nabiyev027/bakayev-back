@@ -2,11 +2,8 @@ package org.example.backend.services.userService;
 
 import org.example.backend.dto.LoginDto;
 import org.example.backend.dto.StudentDto;
-import org.example.backend.dto.UpdateUserDto;
-import org.example.backend.dtoResponse.EmployerResDto;
-import org.example.backend.dtoResponse.StudentResDto;
-import org.example.backend.dtoResponse.TeacherNameDto;
-import org.example.backend.dtoResponse.TeacherResDto;
+import org.example.backend.dto.TeacherDto;
+import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,12 +33,19 @@ public interface UserService {
 
     List<TeacherNameDto> getTeachers();
 
-    List<StudentResDto> getStudents();
+    List<StudentResDto> getStudentsWithData();
 
     List<TeacherResDto> getTeachersWithData();
 
     List<Role> getEmpRoles();
 
     List<EmployerResDto> getEmployers();
+
+    void updateTeacher(UUID id, TeacherDto teacherDto);
+
+
+    List<StudentForMessageResDto> getStudentForMessage(UUID filialId, UUID groupId);
+
+    List<StudentNameResDto> getStudentsByGroup(UUID groupId);
 }
 

@@ -20,11 +20,11 @@ public class AboutSectionTranslation {
     private UUID id;
 
     @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = false, length = 3000)
     private String description1;
 
     @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = false, length = 3000)
     private String description2;
 
     @Enumerated(EnumType.STRING)

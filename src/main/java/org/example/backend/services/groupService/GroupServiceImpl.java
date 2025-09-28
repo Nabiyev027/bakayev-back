@@ -6,13 +6,11 @@ import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.*;
 import org.example.backend.repository.*;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -157,17 +155,51 @@ public class GroupServiceImpl implements GroupService{
     }
 
     @Override
+    public List<GroupsNamesDto> getGroupsByFilial(UUID filialId) {
+        List<GroupsNamesDto> groups = new ArrayList<>();
+
+        Filial filial = filialRepo.findById(filialId).get();
+
+        List<Group> groupByFilial = groupRepo.getGroupByFilial(filial);
+        groupByFilial.forEach(group -> {
+            GroupsNamesDto groupsNamesDto = new GroupsNamesDto();
+            groupsNamesDto.setId(group.getId());
+            groupsNamesDto.setName(group.getName());
+            groups.add(groupsNamesDto);
+        });
+
+        return groups;
+    }
+
+    @Transactional
+    @Override
+    public List<GroupsNamesDto> getGroupsByTeacher(UUID teacherId) {
+        User t = userRepo.findByIdWithGroups(teacherId) // custom query ishlatsa yaxshi
+                .orElseThrow(() -> new UsernameNotFoundException("Foydalanuvchi topilmadi: " + teacherId));
+
+        List<GroupsNamesDto> groups = new ArrayList<>();
+
+        List<Group> groupsByTeachers = groupRepo.getGroupsByTeacher(teacherId);
+
+        groupsByTeachers.forEach(group -> {
+            GroupsNamesDto groupsNamesDto = new GroupsNamesDto();
+            groupsNamesDto.setId(group.getId());
+            groupsNamesDto.setName(group.getName());
+            groups.add(groupsNamesDto);
+        });
+
+        return groups;
+    }
+
+
+    @Override
     @Transactional
     public void deleteGroup(UUID id) {
         Group group = groupRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Group not found: " + id));
 
-        // Many-to-many bog'lovchilarni tozalaymiz
         group.getTeachers().clear();
         group.getStudents().clear();
-
-        // Lesson larni o'chirish uchun lessons ro'yxatini bo'shatish shart emas,
-        // chunki CascadeType.ALL bu ishni o'zi qiladi.
 
         groupRepo.delete(group); // endi xotirjam o'chsa bo'ladi
     }

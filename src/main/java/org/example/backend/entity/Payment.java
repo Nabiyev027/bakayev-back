@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.UUID;
 
@@ -15,7 +16,6 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -23,9 +23,7 @@ public class Payment {
     @ManyToOne(fetch = FetchType.LAZY)
     private User student;
     @NotNull
-    private double totalAmount;
-    @NotNull
-    private Date paymentDate;
+    private LocalDate date;
     @NotBlank
     private String status;
     @NotNull

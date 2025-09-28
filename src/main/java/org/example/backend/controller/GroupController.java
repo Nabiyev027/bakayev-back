@@ -41,6 +41,26 @@ public class GroupController {
         }
     }
 
+    @GetMapping("/teacher/{teacherId}")
+    public ResponseEntity<?> getGroupByTeacher(@PathVariable UUID teacherId) {
+        try{
+            List<GroupsNamesDto> groups = groupService.getGroupsByTeacher(teacherId);
+            return  ResponseEntity.ok(groups);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getGroupByFilial(@RequestParam UUID filialId) {
+        try{
+            List<GroupsNamesDto> groups = groupService.getGroupsByFilial(filialId);
+            return  ResponseEntity.ok(groups);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/getNames")
     public ResponseEntity<?> getGroupsNames() {
         try {
@@ -82,5 +102,7 @@ public class GroupController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    
 
 }

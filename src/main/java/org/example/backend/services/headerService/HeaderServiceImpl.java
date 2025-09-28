@@ -2,7 +2,8 @@ package org.example.backend.services.headerService;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.Enum.Lang;
-import org.example.backend.dto.HeaderSectionDto;
+import org.example.backend.dtoResponse.HeaderSectionDto;
+import org.example.backend.dtoResponse.HeaderSectionTranslationResDto;
 import org.example.backend.entity.HomeSection;
 import org.example.backend.entity.HomeSectionTranslation;
 import org.example.backend.repository.HeaderSectionRepo;
@@ -14,6 +15,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,7 +28,7 @@ public class HeaderServiceImpl implements HeaderService {
     private final HomeSectionTranslationRepo homeSectionTranslationRepo;
 
     @Override
-    public void postOrEdit(String title, MultipartFile img, String lang) {
+    public void postOrEdit(MultipartFile img, String titleUz, String titleRu, String titleEn) {
         // Yagona HomeSection olish (bo‘lmasa yangi yaratamiz)
         HomeSection homeSection = headerSectionRepo.findTopByOrderByIdAsc().orElse(new HomeSection());
 
@@ -35,37 +38,50 @@ public class HeaderServiceImpl implements HeaderService {
             homeSection.setImgUrl(imgPath);
         }
 
-
         HomeSection saved = headerSectionRepo.save(homeSection);
 
-        // Tarjima bo‘yicha tekshiramiz, bo‘lmasa yangi yaratamiz
-        HomeSectionTranslation translation = homeSectionTranslationRepo
-                .findByHomeSectionIdAndLanguage(saved.getId(), Lang.valueOf(lang))
+        HomeSectionTranslation uzTranslation = homeSectionTranslationRepo.findByHomeSectionIdAndLanguage(saved.getId(), Lang.UZ)
                 .orElse(new HomeSectionTranslation());
+        uzTranslation.setTitle(titleUz);
+        uzTranslation.setLanguage(Lang.UZ);
+        uzTranslation.setHomeSection(saved);
+        homeSectionTranslationRepo.save(uzTranslation);
 
-        translation.setTitle(title);
-        translation.setHomeSection(saved);
-        translation.setLanguage(Lang.valueOf(lang));
+        HomeSectionTranslation ruTranslation = homeSectionTranslationRepo.findByHomeSectionIdAndLanguage(saved.getId(), Lang.RU)
+                .orElse(new HomeSectionTranslation());
+        ruTranslation.setTitle(titleRu);
+        ruTranslation.setLanguage(Lang.RU);
+        ruTranslation.setHomeSection(saved);
+        homeSectionTranslationRepo.save(ruTranslation);
 
-        homeSectionTranslationRepo.save(translation);
+        HomeSectionTranslation enTranslation = homeSectionTranslationRepo.findByHomeSectionIdAndLanguage(saved.getId(), Lang.EN)
+                .orElse(new HomeSectionTranslation());
+        enTranslation.setTitle(titleEn);
+        enTranslation.setLanguage(Lang.EN);
+        enTranslation.setHomeSection(saved);
+        homeSectionTranslationRepo.save(enTranslation);
+
     }
 
     @Override
-    public HeaderSectionDto getHeader(String lang) {
-        // Barcha HomeSection larni olib, birinchi elementni olish
+    public HeaderSectionDto getHeader() {
         HomeSection homeSection = headerSectionRepo.findAll()
                 .stream()
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("HomeSection da ma'lumot yoq"));
+                .orElseThrow(() -> new RuntimeException("HomeSection da ma'lumot yo'q"));
 
         HeaderSectionDto headerSectionDto = new HeaderSectionDto();
+        headerSectionDto.setId(homeSection.getId());
         headerSectionDto.setImgUrl(homeSection.getImgUrl());
 
-        homeSection.getTranslations().forEach(translation -> {
-            if (lang.equalsIgnoreCase(translation.getLanguage().name())) {
-                headerSectionDto.setTitle(translation.getTitle());
-            }
+        List<HeaderSectionTranslationResDto> translations = new ArrayList<>();
+        homeSection.getTranslations().forEach(t -> {
+            HeaderSectionTranslationResDto dto = new HeaderSectionTranslationResDto();
+            dto.setTitle(t.getTitle());
+            dto.setLang(String.valueOf(t.getLanguage())); // Agar t.getLanguage() bu enum bo‘lsa, toString() yetarli
+            translations.add(dto);
         });
+        headerSectionDto.setTranslations(translations);
 
         return headerSectionDto;
     }

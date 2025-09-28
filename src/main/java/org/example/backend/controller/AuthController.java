@@ -73,10 +73,17 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@RequestHeader("key") String refreshToken){
-        return   jwtService.refreshToken(refreshToken);
-    }
+//    @GetMapping("/refresh")
+//    public ResponseEntity<?> refreshToken(@RequestHeader("key") String refreshToken){
+//        return  jwtService.refreshToken(refreshToken);
+//    }
 
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
+        System.out.println("Refresh request: " + request); // 🔍 tekshirish
+        String refreshToken = request.get("refreshToken");
+        return jwtService.refreshToken(refreshToken);
+    }
 
 }

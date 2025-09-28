@@ -1,16 +1,16 @@
 package org.example.backend.services.cardSkill;
 
-import org.example.backend.entity.CardSkill;
+import org.example.backend.dtoResponse.CardSkillResDto;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface CardSkillService {
-    void addCardSkill(String title, String lang);
+    void addCardSkill(UUID cardId,String titleUz, String titleRu, String titleEn);
 
-    void editCardSkill(UUID id, String title, String lang);
+    void editCardSkill(UUID skillId, String titleUz, String titleRu, String titleEn);
 
-    List<CardSkill> getAllCards();
+    List<CardSkillResDto> getCardSkills(UUID id);
 
     void delete(UUID id);
 }

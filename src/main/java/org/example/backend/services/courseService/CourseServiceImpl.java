@@ -7,11 +7,14 @@ import org.example.backend.entity.CourseCard;
 import org.example.backend.entity.CourseCardTranslation;
 import org.example.backend.entity.CourseSection;
 import org.example.backend.entity.CourseSectionTranslation;
+import org.example.backend.repository.CardSkillRepo;
+import org.example.backend.repository.CourseCardRepo;
 import org.example.backend.repository.CourseSectionRepo;
 import org.example.backend.repository.CourseSectionTranslationRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +26,8 @@ public class CourseServiceImpl implements CourseService{
 
     private final CourseSectionRepo courseSectionRepo;
     private final CourseSectionTranslationRepo courseSectionTranslationRepo;
+    private final CourseCardRepo courseCardRepo;
+    private final CardSkillRepo cardSkillRepo;
 
 
     @Override
@@ -61,15 +66,12 @@ public class CourseServiceImpl implements CourseService{
             switch (translation.getLanguage()) {
                 case UZ -> {
                     translation.setTitle(titleUz);
-                    translation.setLanguage(Lang.UZ);
                 }
                 case RU -> {
                     translation.setTitle(titleRu);
-                    translation.setLanguage(Lang.RU);
                 }
                 case EN -> {
                     translation.setTitle(titleEn);
-                    translation.setLanguage(Lang.EN);
                 }
             }
             courseSectionTranslationRepo.save(translation);
@@ -158,7 +160,43 @@ public class CourseServiceImpl implements CourseService{
         CourseSection courseSection = courseSectionRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("CourseSection not found with id: " + id));
 
+        // 1. CourseSection ichidagi CourseCardlarni olish
+        courseCardRepo.findAllByCourseSectionId(courseSection.getId()).forEach(courseCard -> {
+
+            // 2. Har bir CourseCard uchun CardSkilllarni o'chirish
+            cardSkillRepo.findAllByCourseCard_Id(courseCard.getId()).forEach(cardSkill -> {
+                cardSkillRepo.delete(cardSkill); // yoki cardSkillRepo.deleteById(cardSkill.getId());
+            });
+
+            deleteImage(courseCard.getImageUrl());
+            // 3. CourseCard'ni o'chirish
+            courseCardRepo.delete(courseCard);
+        });
+
+        // 4. CourseSection'ni o'chirish
         courseSectionRepo.delete(courseSection);
+    }
+
+    public void deleteImage(String imgUrl) {
+        if (imgUrl == null || imgUrl.isBlank()) return;
+
+        try {
+            // uploads papkaga yo‘l
+            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            File imageFile = new File(uploadDir + imgUrl.replace("/uploads", ""));
+
+            if (imageFile.exists()) {
+                boolean deleted = imageFile.delete();
+                if (!deleted) {
+                    System.err.println("❌ Rasmni o‘chirish muvaffaqiyatsiz: " + imageFile.getAbsolutePath());
+                }
+            } else {
+                System.err.println("⚠️ Rasm topilmadi: " + imageFile.getAbsolutePath());
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Rasmni o‘chirishda xatolik: " + e.getMessage());
+        }
     }
 
 

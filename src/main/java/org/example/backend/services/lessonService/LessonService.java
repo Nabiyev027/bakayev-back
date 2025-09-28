@@ -1,16 +1,17 @@
 package org.example.backend.services.lessonService;
 
-import org.example.backend.entity.Lesson;
+import org.example.backend.dto.StudentMarkDto;
+import org.example.backend.dtoResponse.LessonGroupResDto;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface LessonService {
-    List<Lesson> getLessons(UUID groupId);
+    LessonGroupResDto getLessons(UUID groupId);
 
-    void postLesson(UUID groupId, String lessonType);
+    void deleteLesson(UUID id);
 
-    void editLesson(UUID lessonId, String lessonType);
+    void changeTime(UUID groupId,String startTime, String endTime);
 
-    void deletelesson(UUID id);
+    void markStudents(UUID groupId, List<StudentMarkDto> studentMarks);
 }

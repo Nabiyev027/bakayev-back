@@ -2,12 +2,10 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.StudentDto;
+import org.example.backend.dto.TeacherDto;
 import org.example.backend.dto.UpdateUserDto;
 import org.example.backend.dto.UserReception;
-import org.example.backend.dtoResponse.EmployerResDto;
-import org.example.backend.dtoResponse.StudentResDto;
-import org.example.backend.dtoResponse.TeacherNameDto;
-import org.example.backend.dtoResponse.TeacherResDto;
+import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
 import org.example.backend.repository.UserRepo;
@@ -69,18 +67,19 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable UUID id) {
         try {
-            User user = userRepo.findById(id).orElseThrow();
+            User user = userRepo.findById(id)
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
             UserReception userReception = new UserReception();
-            userReception.setFullName(user.getFirstName()+" "+user.getLastName());
+            userReception.setFullName(user.getFirstName() + " " + user.getLastName());
             userReception.setUsername(user.getUsername());
             userReception.setPhone(user.getPhone());
             userReception.setRoles(user.getRoles());
 
             return ResponseEntity.ok(userReception);
-        }catch (Exception e){
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
-
     }
 
     @GetMapping("/teacherWithData")
@@ -94,10 +93,30 @@ public class UserController {
     }
 
     @GetMapping("/students")
-    public ResponseEntity<?> getStudents(){
+    public ResponseEntity<?> getStudentsWithData(){
         try {
-            List<StudentResDto> students = userService.getStudents();
+            List<StudentResDto> students = userService.getStudentsWithData();
             return  ResponseEntity.ok(students);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/student")
+    public ResponseEntity<?> getStudentByGroup(@RequestParam UUID groupId){
+        try {
+            List<StudentNameResDto> students = userService.getStudentsByGroup(groupId);
+            return  ResponseEntity.ok(students);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/studentsForMessage")
+    public ResponseEntity<?> getStudentsForMessage(@RequestParam UUID filialId, @RequestParam UUID groupId){
+        try {
+            List<StudentForMessageResDto> list = userService.getStudentForMessage(filialId, groupId);
+            return ResponseEntity.ok(list);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -125,7 +144,7 @@ public class UserController {
     }
 
     @PutMapping("/student/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable UUID id, @RequestBody StudentDto studentDto){
+    public ResponseEntity<?> updateStudent(@PathVariable UUID id, @RequestBody StudentDto studentDto){
         try {
             userService.updateStudent(id,studentDto);
             return ResponseEntity.ok("User updated successfully");
@@ -133,6 +152,18 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PutMapping("/teacher/{id}")
+    public ResponseEntity<?> updateTeacher(@PathVariable UUID id, @RequestBody TeacherDto teacherDto){
+        try {
+            userService.updateTeacher(id,teacherDto);
+            return ResponseEntity.ok("User updated successfully");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
 
 
 }

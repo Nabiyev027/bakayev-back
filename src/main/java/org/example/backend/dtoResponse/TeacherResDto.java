@@ -12,8 +12,7 @@ public class TeacherResDto {
     private String firstName;
     private String lastName;
     private String phone;
-    private String parentPhone;
-    private FilialNameDto filialNameDto;
+    private List<FilialNameDto> branches;
     private List<GroupsNamesDto> groups;
     private String username;
 

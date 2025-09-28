@@ -36,13 +36,14 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(
                         auth -> auth
-                                .requestMatchers("/auth/login").permitAll()
+                                .requestMatchers("/auth/login", "/auth/refresh").permitAll()
                                 .requestMatchers("/file/get").permitAll()
                                 .requestMatchers("/uploads/**").permitAll()
                                 .requestMatchers("/reference/post").permitAll()
                                 .requestMatchers("/reference").permitAll()
                                 .requestMatchers("/filial/get").permitAll()
                                 .requestMatchers("/headerSection").permitAll()
+                                .requestMatchers("/comment").permitAll()
                                 .requestMatchers("/differenceSection/get").permitAll()
                                 .anyRequest().authenticated()
                 ).addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);

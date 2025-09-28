@@ -49,9 +49,13 @@ public class User implements UserDetails {
     private List<Group> teacherGroups;
 
 
-    @ManyToOne
-    @JoinColumn(name = "filial_id")
-    private Filial filial;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "user_filial",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "filial_id")
+    )
+    private List<Filial> filials;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name="teacher_students", joinColumns = @JoinColumn(name = "teacher_id"), inverseJoinColumns = @JoinColumn(name = "student_id"))
@@ -61,6 +65,13 @@ public class User implements UserDetails {
     @ManyToMany(fetch = FetchType.EAGER, mappedBy = "students")
     @ToString.Exclude
     private Set<User> teachers = new HashSet<>();
+
+    @OneToMany(mappedBy = "student")
+    private List<Debts> debts;
+
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ExamGrades> examGrades = new ArrayList<>();
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

@@ -2,6 +2,7 @@ package org.example.backend.repository;
 
 import org.example.backend.dtoResponse.StudentProjection;
 import org.example.backend.dtoResponse.StudentResDto;
+import org.example.backend.entity.Filial;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
@@ -24,9 +25,35 @@ public interface UserRepo extends JpaRepository<User, UUID> {
 
     @Transactional
     @Query("""
-    SELECT u FROM users u WHERE :group member of u.studentGroups and :role member of u.roles
-""")
+            SELECT u FROM users u WHERE :group member of u.studentGroups and :role member of u.roles""")
     List<StudentProjection> findUsersByGroupAndRole(@Param("group") Group group, @Param("role") Role role);
+
+    @Transactional
+    @Query("""
+                SELECT u FROM users u
+                JOIN u.roles r
+                WHERE r.name = 'ROLE_STUDENT'
+                  AND :group member of u.studentGroups
+                  AND :filial member of u.filials
+            """)
+    List<User> findStudentsByFilialAndGroup(@Param("filial") Filial filial,
+                                            @Param("group") Group group);
+
+    @Transactional
+    @Query("""
+                SELECT u FROM users u
+                    JOIN u.roles r
+                    WHERE r.name = 'ROLE_STUDENT'
+                      AND :group member of u.studentGroups
+            """)
+    List<User> findStudentsByGroup(@Param("group") Group group);
+
+    @Transactional
+    @Query("""
+                         SELECT u FROM users u LEFT JOIN FETCH u.teacherGroups WHERE u.id = :id
+            """)
+    Optional<User> findByIdWithGroups(@Param("id") UUID id);
+
 
 
 }

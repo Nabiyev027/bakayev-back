@@ -4,7 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.LoginDto;
 import org.example.backend.dto.StudentDto;
-import org.example.backend.dto.UpdateUserDto;
+import org.example.backend.dto.TeacherDto;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.*;
 import org.example.backend.repository.*;
@@ -22,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -75,7 +77,9 @@ public class UserServiceImpl implements UserService {
         userNew.setPassword(passwordEncoder.encode(password));
         userNew.setRoles(List.of(role1));
         Filial filial = filialRepo.findById(UUID.fromString(filialId)).get();
-        userNew.setFilial(filial);
+        List<Filial> filialList = new ArrayList<>();
+        filialList.add(filial);
+        userNew.setFilials(filialList);
 
         // 4. Agar rasm bo‘lsa, saqlaymiz
         if (image != null && !image.isEmpty()) {
@@ -153,7 +157,10 @@ public class UserServiceImpl implements UserService {
         user.setPhone(phone);
         user.setPassword(passwordEncoder.encode(password));
         user.setRoles(List.of(roleEntity));
-        user.setFilial(filialOpt.get());
+        List<Filial> filialList = new ArrayList<>();
+        Filial filialEntity = filialOpt.get();
+        filialList.add(filialEntity);
+        user.setFilials(filialList);
 
         // 5. Rasm bo‘lsa saqlaymiz
         if (image != null && !image.isEmpty()) {
@@ -192,7 +199,7 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public List<StudentResDto> getStudents() {
+    public List<StudentResDto> getStudentsWithData() {
         List<StudentResDto> students = new ArrayList<>();
 
         Optional<Role> roleOpt = roleRepo.findByName("ROLE_STUDENT");
@@ -216,11 +223,12 @@ public class UserServiceImpl implements UserService {
             newStudent.setPhone(s.getPhone());
             newStudent.setParentPhone(s.getParentPhone());
 
-            Filial filial = s.getFilial();
-            if (filial != null) {
+            List<Filial> filials = s.getFilials();
+            if (filials != null) {
+                Filial first = filials.getFirst();
                 FilialNameDto filialNameDto = new FilialNameDto();
-                filialNameDto.setId(filial.getId());
-                filialNameDto.setName(filial.getName());
+                filialNameDto.setId(first.getId());
+                filialNameDto.setName(first.getName());
                 newStudent.setFilialNameDto(filialNameDto);
             }
 
@@ -265,15 +273,18 @@ public class UserServiceImpl implements UserService {
             newTeacher.setLastName(t.getLastName());
             newTeacher.setUsername(t.getUsername());
             newTeacher.setPhone(t.getPhone());
-            newTeacher.setParentPhone(t.getParentPhone());
 
-            Filial filial = t.getFilial();
-            if (filial != null) {
-                FilialNameDto filialNameDto = new FilialNameDto();
-                filialNameDto.setId(filial.getId());
-                filialNameDto.setName(filial.getName());
-                newTeacher.setFilialNameDto(filialNameDto);
+            List<FilialNameDto> filials = new ArrayList<>();
+            if (t.getFilials() != null) {
+                t.getFilials().forEach(filial -> {
+                    FilialNameDto filialNameDto = new FilialNameDto();
+                    filialNameDto.setId(filial.getId());
+                    filialNameDto.setName(filial.getName());
+                    filials.add(filialNameDto);
+                });
             }
+
+            newTeacher.setBranches(filials);
 
             List<GroupsNamesDto> groups = new ArrayList<>();
             if (t.getTeacherGroups() != null) {
@@ -284,8 +295,8 @@ public class UserServiceImpl implements UserService {
                     groups.add(groupsNames);
                 });
             }
-
             newTeacher.setGroups(groups);
+
             teachers.add(newTeacher);
         });
 
@@ -306,6 +317,7 @@ public class UserServiceImpl implements UserService {
         return roles;
     }
 
+    @Transactional
     @Override
     public List<EmployerResDto> getEmployers() {
         List<EmployerResDto> employers = new ArrayList<>();
@@ -323,18 +335,137 @@ public class UserServiceImpl implements UserService {
                 employer.setRoles(user.getRoles());
             }
 
-            Filial filial = user.getFilial();
-            if (filial != null) {
-                FilialNameDto filialNameDto = new FilialNameDto();
-                filialNameDto.setId(filial.getId());
-                filialNameDto.setName(filial.getName());
-                employer.setFilialNameDto(filialNameDto);
+            List<Filial> filials = user.getFilials();
+
+            if (filials != null) {
+                List<FilialNameDto> filialNameDtos = new ArrayList<>();
+                filials.forEach(filial -> {
+                    FilialNameDto filialNameDto = new FilialNameDto();
+                    filialNameDto.setId(filial.getId());
+                    filialNameDto.setName(filial.getName());
+                    filialNameDtos.add(filialNameDto);
+                });
+
+                employer.setFilialNameDtos(filialNameDtos);
+
             }
 
             employers.add(employer);
         });
 
         return employers;
+    }
+
+    @Transactional
+    @Override
+    public void updateTeacher(UUID id, TeacherDto teacherDto) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("Foydalanuvchi topilmadi: " + id));
+
+        if (teacherDto.getFirstName() != null) user.setFirstName(teacherDto.getFirstName());
+        if (teacherDto.getLastName() != null) user.setLastName(teacherDto.getLastName());
+        if (teacherDto.getUsername() != null) user.setUsername(teacherDto.getUsername());
+        if (teacherDto.getPhone() != null) user.setPhone(teacherDto.getPhone());
+
+        // --- Filials ---
+        if (teacherDto.getFilialIds() != null) {
+            List<Filial> requestedFilials = teacherDto.getFilialIds().stream()
+                    .map(fId -> filialRepo.findById(fId)
+                            .orElseThrow(() -> new EntityNotFoundException("Filial not found: " + fId)))
+                    .collect(Collectors.toList());
+
+            // Defensive: eski filiallardan o'chirish (agar sizga kerak bo'lsa)
+            List<Filial> oldFilials = Optional.ofNullable(user.getFilials()).orElse(Collections.emptyList());
+            for (Filial old : new ArrayList<>(oldFilials)) {
+                if (old.getUsers() != null) old.getUsers().remove(user);
+            }
+
+            // Yangi filialga qo'shish (bilateral update)
+            for (Filial f : requestedFilials) {
+                if (f.getUsers() == null) f.setUsers(new ArrayList<>());
+                if (!f.getUsers().contains(user)) f.getUsers().add(user);
+            }
+
+            // Foydalanuvchi tomonini yangilash (agar User owning bo'lsa shu yetarli)
+            user.setFilials(new ArrayList<>(requestedFilials));
+
+            // Agar Filial owning bo'lsa yoki siz inverse tomonlarni ham saqlamoqchi bo'lsangiz:
+            List<Filial> toSaveFilials = Stream.concat(oldFilials.stream(), requestedFilials.stream())
+                    .distinct().collect(Collectors.toList());
+            filialRepo.saveAll(toSaveFilials);
+        }
+
+        // --- Groups ---
+        if (teacherDto.getGroupIds() != null) {
+            List<Group> requestedGroups = teacherDto.getGroupIds().stream()
+                    .map(gid -> groupRepo.findById(gid)
+                            .orElseThrow(() -> new EntityNotFoundException("Group not found: " + gid)))
+                    .collect(Collectors.toList());
+
+            // Eski guruhlardan o'chirish — Eslatma: bu yerda getTeacherGroups() ishlatilsin
+            List<Group> oldGroups = Optional.ofNullable(user.getTeacherGroups()).orElse(Collections.emptyList());
+            for (Group old : new ArrayList<>(oldGroups)) {
+                if (old.getTeachers() != null) old.getTeachers().remove(user);
+            }
+
+            // Yangi guruhlarga qo'shish (bilateral)
+            for (Group g : requestedGroups) {
+                if (g.getTeachers() == null) g.setTeachers(new ArrayList<>());
+                if (!g.getTeachers().contains(user)) g.getTeachers().add(user);
+            }
+
+            user.setTeacherGroups(new ArrayList<>(requestedGroups));
+
+            // Saqlash — eski va yangi guruhlarni saqlang, agar Group owning bo'lsa
+            List<Group> toSaveGroups = Stream.concat(oldGroups.stream(), requestedGroups.stream())
+                    .distinct().collect(Collectors.toList());
+            groupRepo.saveAll(toSaveGroups);
+        }
+
+        // Oxirida user ni saqlaymiz
+        userRepo.save(user);
+    }
+
+
+    @Override
+    public List<StudentForMessageResDto> getStudentForMessage(UUID filialId, UUID groupId) {
+        List <StudentForMessageResDto> studentForMessageResDtos = new ArrayList<>();
+        Filial filial = filialRepo.findById(filialId).get();
+        Group group = groupRepo.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found: " + groupId));
+
+        List<User> students = userRepo.findStudentsByFilialAndGroup(filial, group);
+
+        students.forEach(student -> {
+            StudentForMessageResDto studentForMessageResDto = new StudentForMessageResDto();
+            studentForMessageResDto.setId(student.getId());
+            studentForMessageResDto.setFirstName(student.getFirstName());
+            studentForMessageResDto.setLastName(student.getLastName());
+            studentForMessageResDto.setPhone(student.getPhone());
+            studentForMessageResDto.setParentPhone(student.getParentPhone());
+            studentForMessageResDtos.add(studentForMessageResDto);
+        });
+
+        return studentForMessageResDtos;
+
+    }
+
+    @Override
+    public List<StudentNameResDto> getStudentsByGroup(UUID groupId) {
+        List<StudentNameResDto> students = new ArrayList<>();
+
+        Group group = groupRepo.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found: " + groupId));
+
+        if(group!=null){
+            List<User> studentsByGroup = userRepo.findStudentsByGroup(group);
+            studentsByGroup.forEach(student -> {
+                StudentNameResDto studentNameResDto = new StudentNameResDto();
+                studentNameResDto.setId(student.getId());
+                studentNameResDto.setName(student.getFirstName() + " " + student.getLastName());
+                students.add(studentNameResDto);
+            });
+        }
+
+        return students;
     }
 
 
@@ -348,7 +479,7 @@ public class UserServiceImpl implements UserService {
 
         User user = optionalUser.get();
 
-        // Ism va familiya va boshqa oddiy maydonlarni yangilash
+
         if (studentDto.getFirstName() != null) {
             user.setFirstName(studentDto.getFirstName());
         }
@@ -373,7 +504,12 @@ public class UserServiceImpl implements UserService {
         if (studentDto.getFilialId() != null) {
             Filial filial = filialRepo.findById(studentDto.getFilialId())
                     .orElseThrow(() -> new RuntimeException("Filial topilmadi: " + studentDto.getFilialId()));
-            user.setFilial(filial);
+            List<Filial> filials = new ArrayList<>();
+            Filial filial1 = new Filial();
+            filial1.setId(filial.getId());
+            filial1.setName(filial.getName());
+            filials.add(filial1);
+            user.setFilials(filials);
         }
 
         if (studentDto.getGroupIds() != null) {
@@ -427,6 +563,7 @@ public class UserServiceImpl implements UserService {
                         loginDto.getPassword()
                 )
         );
+
         String jwt = jwtService.generateJwt(id.toString(),authenticate);
         String refreshJwt = jwtService.generateRefreshJwt(id.toString(),authenticate);
         Map<String, String> tokens = new HashMap<>();
@@ -474,7 +611,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // 6. Filialdan uzish (optional)
-        user.setFilial(null);
+        user.setFilials(null);
 
         // 7. Roles tozalash (ixtiyoriy)
         if (user.getRoles() != null) {
@@ -506,7 +643,7 @@ public class UserServiceImpl implements UserService {
                 uploadsFolder.mkdirs();
             }
 
-            String uniqueFileName = UUID.randomUUID().toString() + "_" + img.getOriginalFilename();
+            String uniqueFileName = UUID.randomUUID() + "_" + img.getOriginalFilename();
             File destination = new File(uploadsFolder, uniqueFileName);
             img.transferTo(destination);
 

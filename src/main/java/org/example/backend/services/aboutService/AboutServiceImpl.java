@@ -2,12 +2,12 @@ package org.example.backend.services.aboutService;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.Enum.Lang;
-import org.example.backend.dto.AboutSectionDto;
+import org.example.backend.dtoResponse.AboutSectionResDto;
+import org.example.backend.dtoResponse.AboutSectionTranslationResDto;
 import org.example.backend.entity.AboutSection;
 import org.example.backend.entity.AboutSectionTranslation;
 import org.example.backend.repository.AboutSectionRepo;
 import org.example.backend.repository.AboutSectionTranslationRepo;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,8 +16,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,37 +29,40 @@ public class AboutServiceImpl implements AboutService{
 
     @Transactional
     @Override
-    public AboutSectionDto getAbout(String lang) {
+    public AboutSectionResDto getAbout() {
         AboutSection found = aboutSectionRepo.findAll()
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("About section not found"));
 
-        AboutSectionDto aboutSectionDto = new AboutSectionDto();
-        aboutSectionDto.setImgUrl(found.getImgUrl());
-        aboutSectionDto.setVideoUrl(found.getVideoUrl());
+        AboutSectionResDto aboutSectionResDto = new AboutSectionResDto();
+        aboutSectionResDto.setImgUrl(found.getImgUrl());
+        aboutSectionResDto.setVideoUrl(found.getVideoUrl());
 
-        // Null bo'lmasligi va mavjud tilga tekshiruv
-        if (found.getTranslations() != null) {
-            found.getTranslations().stream()
-                    .filter(t -> t.getLanguage().toString().equalsIgnoreCase(lang))
-                    .findFirst()
-                    .ifPresent(translation -> {
-                        aboutSectionDto.setDescription1(translation.getDescription1());
-                        aboutSectionDto.setDescription2(translation.getDescription2());
-                    });
-        }
+        List<AboutSectionTranslationResDto> translationDtos = found.getTranslations()
+                .stream()
+                .map(translation->{
+                    AboutSectionTranslationResDto dto = new AboutSectionTranslationResDto();
+                    dto.setDescription1(translation.getDescription1());
+                    dto.setDescription2(translation.getDescription2());
+                    dto.setLang(String.valueOf(translation.getLanguage()));
+                    return dto;
+                }).collect(Collectors.toList());
 
-        return aboutSectionDto;
+        aboutSectionResDto.setTranslations(translationDtos);
+
+        return aboutSectionResDto;
     }
 
     @Override
-    public void aboutPostAndUpdate(MultipartFile img, MultipartFile video, String description1, String description2, String lang) {
-        // 1. Mavjud AboutSection ni olish yoki yangi yaratish
+    public void aboutPostAndUpdate(MultipartFile img, MultipartFile video, String description1Uz,
+                                   String description1Ru, String description1En, String description2Uz,
+                                   String description2Ru, String description2En) {
+
         AboutSection aboutSection = aboutSectionRepo.findTopByOrderByIdAsc()
                 .orElse(new AboutSection());
 
-        // 2. Rasm mavjud bo‘lsa, almashtirish yoki yaratish
+        // 1. Rasmni yuklash yoki almashtirish
         if (img != null && !img.isEmpty()) {
             String newImg = aboutSection.getImgUrl() != null
                     ? replaceImage(aboutSection.getImgUrl(), img)
@@ -65,7 +70,7 @@ public class AboutServiceImpl implements AboutService{
             aboutSection.setImgUrl(newImg);
         }
 
-        // 3. Video mavjud bo‘lsa, almashtirish yoki yaratish
+        // 2. Videoni yuklash yoki almashtirish
         if (video != null && !video.isEmpty()) {
             String newVid = aboutSection.getVideoUrl() != null
                     ? replaceVideo(aboutSection.getVideoUrl(), video)
@@ -73,46 +78,26 @@ public class AboutServiceImpl implements AboutService{
             aboutSection.setVideoUrl(newVid);
         }
 
-        // 4. AboutSection ni saqlaymiz
+        // 3. AboutSection ni saqlaymiz
         AboutSection saved = aboutSectionRepo.save(aboutSection);
 
-        // 5. Tarjima ma’lumotini olish yoki yangi yaratish
+        // 4. Har bir til uchun tarjimalarni saqlaymiz
+        saveOrUpdateTranslation(saved, Lang.UZ, description1Uz, description2Uz);
+        saveOrUpdateTranslation(saved, Lang.RU, description1Ru, description2Ru);
+        saveOrUpdateTranslation(saved, Lang.EN, description1En, description2En);
+    }
+
+    private void saveOrUpdateTranslation(AboutSection section, Lang lang, String description1, String description2) {
         AboutSectionTranslation translation = aboutSectionTranslationRepo
-                .findByAboutSectionIdAndLanguage(saved.getId(), Lang.valueOf(lang))
+                .findByAboutSectionIdAndLanguage(section.getId(), lang)
                 .orElse(new AboutSectionTranslation());
 
         translation.setDescription1(description1);
         translation.setDescription2(description2);
-        translation.setLanguage(Lang.valueOf(lang));
-        translation.setAboutSection(saved);
+        translation.setLanguage(lang);
+        translation.setAboutSection(section);
 
-        // 6. Tarjimani saqlaymiz
         aboutSectionTranslationRepo.save(translation);
-    }
-
-    @Override
-    public void editAbout(UUID id, MultipartFile img, String video, String description1, String description2, String lang) {
-        AboutSection found = aboutSectionRepo.findById(id).orElseThrow(() -> new RuntimeException("About section not found"));
-
-
-        // Agar yangi rasm yuborilgan bo‘lsa, almashtiramiz
-        if (img != null && !img.isEmpty()) {
-            String newImageUrl = replaceImage(found.getImgUrl(), img);
-            found.setImgUrl(newImageUrl);
-        }
-
-        // Tarjimani yangilaymiz
-        found.getTranslations().forEach(translation -> {
-            if (translation.getLanguage().equals(Lang.valueOf(lang))) {
-                translation.setDescription1(description1);
-                translation.setDescription2(description2);
-                aboutSectionTranslationRepo.save(translation);
-            }
-
-        });
-
-
-        aboutSectionRepo.save(found);
     }
 
     @Override

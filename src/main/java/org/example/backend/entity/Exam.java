@@ -6,7 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "exam")
@@ -17,16 +19,28 @@ public class Exam {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
     @NotBlank
     private String title;
-    private Date date;
-    private String type;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    private Lesson lesson;
+    private LocalDate date;
+    private LocalTime startTime;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    private Boolean completed;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     private Group group;
+
+    @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ExamGrades> examGrades;
+
+    @ManyToMany
+    @JoinTable(
+            name = "exam_types_of_exam", // oraliq jadval avtomatik yaratiladi
+            joinColumns = @JoinColumn(name = "exam_id"),
+            inverseJoinColumns = @JoinColumn(name = "exam_type_id")
+    )
+    private List<ExamTypes> examTypes;  // ✅ bitta examda bir nechta type
 
 }
 

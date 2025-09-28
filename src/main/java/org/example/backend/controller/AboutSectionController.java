@@ -1,7 +1,7 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.backend.dto.AboutSectionDto;
+import org.example.backend.dtoResponse.AboutSectionResDto;
 import org.example.backend.services.aboutService.AboutService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,9 +19,9 @@ public class AboutSectionController {
     private final AboutService aboutService;
 
     @GetMapping
-    public ResponseEntity<?> getAbout(@RequestParam String lang) {
+    public ResponseEntity<?> getAbout() {
         try {
-            AboutSectionDto about = aboutService.getAbout(lang);
+            AboutSectionResDto about = aboutService.getAbout();
             return ResponseEntity.ok(about);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -32,26 +32,17 @@ public class AboutSectionController {
     public ResponseEntity<?> aboutPostAndUpdate(
             @RequestParam(required = false) MultipartFile img,
                                                 @RequestParam(required = false) MultipartFile video,
-                                                @RequestParam String description1,
-                                                @RequestParam String description2,
-                                                @RequestParam String lang){
+                                                @RequestParam String description1Uz, @RequestParam String description1Ru,
+                                                @RequestParam String description1En, @RequestParam String description2Uz,
+                                                @RequestParam String description2Ru, @RequestParam String description2En){
         try {
-            aboutService.aboutPostAndUpdate(img,video,description1,description2,lang);
+            aboutService.aboutPostAndUpdate(img,video,description1Uz,description1Ru,description1En,description2Uz,description2Ru,description2En);
             return ResponseEntity.ok("Successfully added about");
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> editAbout(@PathVariable UUID id, @RequestParam MultipartFile img, @RequestParam String video, @RequestParam String description1, @RequestParam String description2, @RequestParam String lang){
-        try{
-            aboutService.editAbout(id,img,video,description1,description2,lang);
-            return ResponseEntity.ok("Successfully updated about");
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAbout(@PathVariable UUID id){

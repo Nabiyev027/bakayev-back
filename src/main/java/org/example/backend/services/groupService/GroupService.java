@@ -22,4 +22,8 @@ public interface GroupService {
     List<StudentResDto> getStudents(UUID groupId);
 
     List<GroupsNamesDto> getGroupsNames();
+
+    List<GroupsNamesDto> getGroupsByFilial(UUID filialId);
+
+    List<GroupsNamesDto> getGroupsByTeacher(UUID teacherId);
 }

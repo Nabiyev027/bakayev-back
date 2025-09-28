@@ -98,6 +98,7 @@ public class CourseCardServiceImpl implements CourseCardService {
     public List<CourseCardResDto> getAllCards(UUID courseId) {
         List<CourseCardResDto> courseCardResDtosList = new ArrayList<>();
 
+
         courseCardRepo.findAllByCourseSectionId(courseId).forEach(courseCard -> {
             CourseCardResDto courseCardResDto = new CourseCardResDto();
             courseCardResDto.setId(courseCard.getId());
@@ -127,7 +128,11 @@ public class CourseCardServiceImpl implements CourseCardService {
     public void delete(UUID id) {
         CourseCard courseCard = courseCardRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("CourseCard not found with id: " + id));
+        String imageUrl = courseCard.getImageUrl();
 
+        if(imageUrl != null && !imageUrl.isEmpty()) {
+            deleteImage(courseCard.getImageUrl());
+        }
         courseCardRepo.delete(courseCard);
     }
 

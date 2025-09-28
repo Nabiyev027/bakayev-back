@@ -1,11 +1,13 @@
 package org.example.backend.security.service.impl;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.security.service.JwtService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,7 +33,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String generateJwt(String id, Authentication authentication) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + 1000 * 60 * 60 * 24); // 24 soat
+        Date expiryDate = new Date(now.getTime() + 1000 * 10); // 20 sek
 
         List<String> authorities = authentication.getAuthorities()
                 .stream()
@@ -72,20 +75,43 @@ public class JwtServiceImpl implements JwtService {
                 .parseSignedClaims(jwt);
     }
 
+//    @Override
+//    public ResponseEntity<?> refreshToken(String refreshToken) {
+//        String id = extractJwt(refreshToken).getPayload().getSubject();
+//
+//        UserDetails userDetails = userDetailsService.loadUserByUsername(id);
+//
+//        Authentication authentication = new UsernamePasswordAuthenticationToken(
+//                userDetails,
+//                null,
+//                userDetails.getAuthorities()
+//        );
+//
+//        String jwt = generateJwt(id, authentication);
+//
+//        return ResponseEntity.ok(jwt);
+//    }
+
     @Override
     public ResponseEntity<?> refreshToken(String refreshToken) {
-        String id = extractJwt(refreshToken).getPayload().getSubject();
+        // Refresh tokenni tekshirish va subject (userId yoki username) ni olish
+        String userId = Jwts.parser()
+                .verifyWith(signWithKey())   // ✅ to‘g‘ri API
+                .build()
+                .parseSignedClaims(refreshToken)
+                .getPayload()
+                .getSubject();
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(id);
+        // Userni olish
+        UserDetails userDetails = userDetailsService.loadUserByUsername(userId);
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                userDetails,
-                null,
-                userDetails.getAuthorities()
+        // Yangi access token yaratish
+        String newAccessToken = generateJwt(
+                userId,
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities())
         );
 
-        String jwt = generateJwt(id, authentication);
-
-        return ResponseEntity.ok(jwt);
+        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
     }
+
 }

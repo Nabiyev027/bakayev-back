@@ -63,7 +63,7 @@ public class CourseSectionController {
     public ResponseEntity<?> deleteCourse(@PathVariable UUID id) {
         try {
             courseService.delete(id);
-            return ResponseEntity.ok("Lesson deleted");
+            return ResponseEntity.ok("Course deleted");
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

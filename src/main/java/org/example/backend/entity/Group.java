@@ -55,6 +55,4 @@ public class Group {
     private List<User> students;
 
 
-
-
 }
