@@ -2,10 +2,7 @@ package org.example.backend.services.lessonService;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.StudentMarkDto;
-import org.example.backend.dtoResponse.LessonGroupResDto;
-import org.example.backend.dtoResponse.LessonStudentMarksResDto;
-import org.example.backend.dtoResponse.LessonStudentResDto;
-import org.example.backend.dtoResponse.StudentProjection;
+import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.*;
 import org.example.backend.repository.*;
 import org.springframework.stereotype.Service;
@@ -177,7 +174,65 @@ public class LessonServiceImpl implements LessonService{
         }
     }
 
+    @Transactional
+    @Override
+    public List<LessonStudentByGroupResDto> getStudentLessonsByGroupIdAndUserIdAndType(UUID studentId, UUID groupId, String type) {
+        List<LessonStudentByGroupResDto> studentLessons = new ArrayList<>();
 
+        // Studentni olish
+        User student = userRepo.findById(studentId).orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Guruhni olish
+        Group group = student.getStudentGroups().stream()
+                .filter(g -> g.getId().equals(groupId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Group not found for student"));
+
+        LocalDate now = LocalDate.now();
+        LocalDate startDate = null;
+
+        switch (type.toLowerCase()) {
+            case "today":
+                startDate = now;
+                break;
+            case "week":
+                startDate = now.minusDays(7);
+                break;
+            case "month":
+                startDate = now.minusMonths(1);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid type: " + type);
+        }
+
+        // Lessonsni filterlash va DTOga o‘tkazish
+        LocalDate finalStartDate = startDate;
+        group.getLessons().stream()
+                .filter(lesson -> !lesson.getDate().isBefore(finalStartDate) && !lesson.getDate().isAfter(now))
+                .forEach(lesson -> {
+                    LessonStudentByGroupResDto lessonDto = new LessonStudentByGroupResDto();
+                    lessonDto.setId(lesson.getId());
+                    lessonDto.setDate(lesson.getDate());
+                    lessonDto.setWeekDay(lesson.getDate().getDayOfWeek().toString());
+
+                    // Studentning lessonMarkslarini olish
+                    List<LessonStudentMarksResDto> marks = lesson.getLessonMarks().stream()
+                            .filter(mark -> mark.getStudent().getId().equals(studentId))
+                            .map(mark -> {
+                                LessonStudentMarksResDto markDto = new LessonStudentMarksResDto();
+                                markDto.setId(mark.getId());
+                                markDto.setTypeName(mark.getTypeName());
+                                markDto.setMark(mark.getMark());
+                                return markDto;
+                            })
+                            .toList();
+
+                    lessonDto.setMarks(marks);
+                    studentLessons.add(lessonDto);
+                });
+
+        return studentLessons;
+    }
 
 
 }

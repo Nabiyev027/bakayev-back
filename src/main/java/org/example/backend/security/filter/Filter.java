@@ -28,67 +28,25 @@ public class Filter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserRepo userRepo;
 
-//    @Override
-//    protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain) throws ServletException, IOException {
-//        String authorization = request.getHeader("key");
-//        System.out.println("Authorization: " + authorization);
-//        if(authorization!=null){
-//            Jws<Claims> claimsJws = jwtService.extractJwt(authorization);
-//            Claims user = claimsJws.getPayload();
-//            String id = user.getSubject();
-//
-//            User user1 = userRepo.findById(UUID.fromString(id)).orElseThrow();
-//            UsernamePasswordAuthenticationToken usn = new UsernamePasswordAuthenticationToken(
-//                    user1.getUsername(),
-//                    user1.getPassword(),
-//                    user1.getAuthorities()
-//            );
-//            SecurityContextHolder.getContext().setAuthentication(usn);
-//        }
-//        filterChain.doFilter(request,response);
-//    }
-
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    @NotNull HttpServletResponse response,
-                                    @NotNull FilterChain filterChain) throws ServletException, IOException {
-
+    protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain) throws ServletException, IOException {
         String authorization = request.getHeader("key");
         System.out.println("Authorization: " + authorization);
+        if(authorization!=null){
+            Jws<Claims> claimsJws = jwtService.extractJwt(authorization);
+            Claims user = claimsJws.getPayload();
+            String id = user.getSubject();
 
-        String path = request.getServletPath();
-        if (path.equals("/auth/login") || path.equals("/auth/refresh")) {
-            filterChain.doFilter(request, response);
-            return;
+            User user1 = userRepo.findById(UUID.fromString(id)).orElseThrow();
+            UsernamePasswordAuthenticationToken usn = new UsernamePasswordAuthenticationToken(
+                    user1.getUsername(),
+                    user1.getPassword(),
+                    user1.getAuthorities()
+            );
+            SecurityContextHolder.getContext().setAuthentication(usn);
         }
-
-        if (authorization != null) {
-            try {
-                Jws<Claims> claimsJws = jwtService.extractJwt(authorization);
-                Claims user = claimsJws.getPayload();
-                String id = user.getSubject();
-
-                User user1 = userRepo.findById(UUID.fromString(id)).orElseThrow();
-                UsernamePasswordAuthenticationToken usn = new UsernamePasswordAuthenticationToken(
-                        user1.getUsername(),
-                        user1.getPassword(),
-                        user1.getAuthorities()
-                );
-                SecurityContextHolder.getContext().setAuthentication(usn);
-
-            } catch (io.jsonwebtoken.ExpiredJwtException e) {
-                // access token muddati tugagan
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Access token expired, please refresh");
-                return;
-            } catch (Exception e) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Invalid token");
-                return;
-            }
-        }
-
-        filterChain.doFilter(request, response);
+        filterChain.doFilter(request,response);
     }
+
 
 }

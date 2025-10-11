@@ -468,6 +468,15 @@ public class UserServiceImpl implements UserService {
         return students;
     }
 
+    @Override
+    public void changeEmployerPassword(UUID userId, String newPassword) {
+        User user = userRepo.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+        if(user!=null){
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepo.save(user);
+        }
+    }
+
 
     @Transactional
     @Override

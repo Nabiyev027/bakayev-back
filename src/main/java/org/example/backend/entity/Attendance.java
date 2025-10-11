@@ -19,14 +19,11 @@ public class Attendance {
     private UUID id;
     @NotNull
     private LocalDate date;
-    @NotNull
-    private Boolean status;
+    private String status;
     private String cause;
     @ManyToOne(fetch = FetchType.EAGER)
     private User student;
     @ManyToOne(fetch = FetchType.EAGER)
     private Group group;
-    @ManyToOne(fetch = FetchType.EAGER)
-    private User teacher;
 
 }

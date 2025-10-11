@@ -1,7 +1,10 @@
 package org.example.backend.services.teacherService;
 
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.Enum.Lang;
+import org.example.backend.dtoResponse.TeacherSectionDataResDto;
+import org.example.backend.dtoResponse.TeacherSectionImgResDto;
 import org.example.backend.dtoResponse.TeacherSectionResDto;
 import org.example.backend.dtoResponse.TeacherSectionTranslationResDto;
 import org.example.backend.entity.TeacherSection;
@@ -150,6 +153,48 @@ public class TeacherServiceImpl implements TeacherService {
         }
 
         return teacherSectionDtos;
+    }
+
+    @Override
+    public List<TeacherSectionImgResDto> getTeacherSectionsWithImage() {
+        List<TeacherSectionImgResDto> teacherSectionImgResDtos = new ArrayList<>();
+        List<TeacherSection> all = teacherSectionRepo.findAll();
+        all.forEach(teacherSection -> {
+           TeacherSectionImgResDto dto = new TeacherSectionImgResDto();
+           dto.setId(teacherSection.getId());
+           dto.setImageUrl(teacherSection.getImgUrl());
+           dto.setName(teacherSection.getFirstName() + " " + teacherSection.getLastName());
+           dto.setIeltsBall(teacherSection.getIeltsBall());
+           teacherSectionImgResDtos.add(dto);
+        });
+
+        return teacherSectionImgResDtos;
+
+    }
+
+    @Transactional
+    @Override
+    public TeacherSectionDataResDto getTeacherSectionsData(UUID teacherId, String lang) {
+        TeacherSection teacherSection = teacherSectionRepo.findById(teacherId).get();
+
+        TeacherSectionDataResDto dto = new TeacherSectionDataResDto();
+        dto.setId(teacherSection.getId());
+        dto.setFirstName(teacherSection.getFirstName());
+        dto.setLastName(teacherSection.getLastName());
+        dto.setIeltsBall(teacherSection.getIeltsBall());
+        dto.setCertificate(teacherSection.getCertificate());
+        dto.setExperience(teacherSection.getExperience());
+        dto.setNumberOfStudents(teacherSection.getNumberOfStudents());
+        dto.setImgUrl(teacherSection.getImgUrl());
+
+        for (TeacherSectionTranslation translation : teacherSection.getTranslations()) {
+            if (translation.getLanguage().toString().equals(lang)) {
+                dto.setDescription(translation.getDescription());
+            }
+        }
+
+        return dto;
+
     }
 
     private String replaceImage(String oldImgUrl, MultipartFile newImg) {

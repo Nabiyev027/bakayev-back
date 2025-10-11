@@ -78,6 +78,8 @@ public class CourseCardServiceImpl implements CourseCardService {
             courseCard.setImageUrl(newImageUrl);
         }
 
+        courseCard.setRating((rating == null || rating == 0) ? 0 : rating);
+
         courseCard.getTranslations().forEach(translation -> {
             switch (translation.getLanguage()) {
                 case UZ -> {

@@ -19,7 +19,7 @@ public class StudentSectionController {
 
     private final StudentService studentService;
 
-    @GetMapping
+    @GetMapping("/getInfo")
     public ResponseEntity<?> getStudentInfo() {
         try {
             List<StudentSectionResDto> studentInfo = studentService.getStudentInfo();

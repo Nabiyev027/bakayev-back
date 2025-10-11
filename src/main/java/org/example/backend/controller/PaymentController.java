@@ -19,7 +19,7 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-    @PostMapping
+    @PostMapping("/addPayment")
     public ResponseEntity<?> addStudentPayment(@RequestBody PaymentDto paymentDto){
         try {
             paymentService.addPayment(paymentDto);

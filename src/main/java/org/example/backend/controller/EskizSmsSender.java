@@ -3,12 +3,17 @@ package org.example.backend.controller;
 import okhttp3.*;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class EskizSmsSender {
+    private static final String TOKEN_FILE_PATH = "src/main/resources/token.txt";
 
     public static void main(String[] args) throws IOException {
         // 1. Eskizdan olingan tokenni bu yerga yozing yoki fayldan o‘qing
-        String token = "SIZNING_TOKENINGIZ"; // Masalan: "eyJ0eXAiOiJKV1QiLCJhbGciOi..."
+
+
+        String token = new String(Files.readAllBytes(Paths.get(TOKEN_FILE_PATH))).trim();
 
         OkHttpClient client = new OkHttpClient();
 

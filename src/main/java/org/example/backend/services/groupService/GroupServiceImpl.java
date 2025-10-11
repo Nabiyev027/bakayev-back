@@ -174,14 +174,38 @@ public class GroupServiceImpl implements GroupService{
     @Transactional
     @Override
     public List<GroupsNamesDto> getGroupsByTeacher(UUID teacherId) {
-        User t = userRepo.findByIdWithGroups(teacherId) // custom query ishlatsa yaxshi
+        User t = userRepo.findById(teacherId) // custom query ishlatsa yaxshi
                 .orElseThrow(() -> new UsernameNotFoundException("Foydalanuvchi topilmadi: " + teacherId));
+
+        System.out.println(t);
+
 
         List<GroupsNamesDto> groups = new ArrayList<>();
 
-        List<Group> groupsByTeachers = groupRepo.getGroupsByTeacher(teacherId);
+        List<Group> groupsByTeachers = groupRepo.getGroupsByTeacher(t.getId());
+
+        System.out.println("groupsByTeachers: " + groupsByTeachers);
 
         groupsByTeachers.forEach(group -> {
+            GroupsNamesDto groupsNamesDto = new GroupsNamesDto();
+            groupsNamesDto.setId(group.getId());
+            groupsNamesDto.setName(group.getName());
+            groups.add(groupsNamesDto);
+        });
+
+        return groups;
+    }
+
+    @Override
+    public List<GroupsNamesDto> getGroupsByStudent(UUID studentId) {
+        User s = userRepo.findByIdWithGroups(studentId) // custom query ishlatsa yaxshi
+                .orElseThrow(() -> new UsernameNotFoundException("Foydalanuvchi topilmadi: " + studentId));
+
+        List<GroupsNamesDto> groups = new ArrayList<>();
+
+        List<Group> groupsByStudent = groupRepo.getGroupsByStudent(s.getId());
+
+        groupsByStudent.forEach(group -> {
             GroupsNamesDto groupsNamesDto = new GroupsNamesDto();
             groupsNamesDto.setId(group.getId());
             groupsNamesDto.setName(group.getName());

@@ -33,7 +33,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String generateJwt(String id, Authentication authentication) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + 1000 * 10); // 20 sek
+        Date expiryDate = new Date(now.getTime() + 1000 * 60 * 60 * 24); // 1 kun
 
         List<String> authorities = authentication.getAuthorities()
                 .stream()
@@ -52,7 +52,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String generateRefreshJwt(String id, Authentication authentication) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + 1000 * 60 * 60 * 24); // 24 soat
+        Date expiryDate = new Date(now.getTime() + 1000L * 60 * 60 * 24 * 7); // 7 kun
 
         return Jwts.builder()
                 .subject(id)
@@ -75,43 +75,33 @@ public class JwtServiceImpl implements JwtService {
                 .parseSignedClaims(jwt);
     }
 
-//    @Override
-//    public ResponseEntity<?> refreshToken(String refreshToken) {
-//        String id = extractJwt(refreshToken).getPayload().getSubject();
-//
-//        UserDetails userDetails = userDetailsService.loadUserByUsername(id);
-//
-//        Authentication authentication = new UsernamePasswordAuthenticationToken(
-//                userDetails,
-//                null,
-//                userDetails.getAuthorities()
-//        );
-//
-//        String jwt = generateJwt(id, authentication);
-//
-//        return ResponseEntity.ok(jwt);
-//    }
-
     @Override
     public ResponseEntity<?> refreshToken(String refreshToken) {
-        // Refresh tokenni tekshirish va subject (userId yoki username) ni olish
-        String userId = Jwts.parser()
-                .verifyWith(signWithKey())   // ✅ to‘g‘ri API
-                .build()
-                .parseSignedClaims(refreshToken)
-                .getPayload()
-                .getSubject();
+        try {
+            String id = extractJwt(refreshToken).getPayload().getSubject();
 
-        // Userni olish
-        UserDetails userDetails = userDetailsService.loadUserByUsername(userId);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(id);
 
-        // Yangi access token yaratish
-        String newAccessToken = generateJwt(
-                userId,
-                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities())
-        );
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null,
+                    userDetails.getAuthorities()
+            );
 
-        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
+            // yangi access token
+            String newAccessToken = generateJwt(id, authentication);
+
+            Map<String, Object> response = Map.of(
+                    "accessToken", newAccessToken
+            );
+
+            return ResponseEntity.ok(response);
+
+        } catch (ExpiredJwtException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token muddati tugagan");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token yaroqsiz");
+        }
     }
-
 }
+

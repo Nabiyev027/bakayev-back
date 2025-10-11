@@ -2,7 +2,7 @@ package org.example.backend.services.attendance;
 
 import org.example.backend.dto.AttendanceGroupDto;
 import org.example.backend.dto.AttendanceTodayGroupDto;
-import org.example.backend.dtoResponse.AttendanceResDto;
+import org.example.backend.dtoResponse.AttendanceDailyResDto;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
@@ -11,14 +11,16 @@ import java.util.UUID;
 
 public interface AttendanceService {
 
-
     void markAttendance(UUID groupId, List<AttendanceGroupDto> attendanceGroupDtos);
 
     void editAttendance(UUID groupId, List<AttendanceGroupDto> attendanceGroupDtos);
 
     List<AttendanceTodayGroupDto> getTodayAttendance(UUID groupId);
 
-    List<AttendanceResDto> getDailyAttendance(UUID group, LocalDate date);
+    List<AttendanceDailyResDto> getDailyAttendance(UUID groupId, LocalDate date);
 
-    ResponseEntity<?> addNewAttendance(UUID groupId);
+
+    List<AttendanceDailyResDto> getMonthlyAttendance(UUID groupId, int y, int m);
+
+    List<AttendanceDailyResDto> getWeeklyAttendance(UUID groupId, int y, int m, Integer week);
 }

@@ -2,6 +2,7 @@ package org.example.backend.services.differenceService;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.Enum.Lang;
+import org.example.backend.dtoResponse.DifferenceHomeResDto;
 import org.example.backend.dtoResponse.DifferenceResDto;
 import org.example.backend.dtoResponse.DifferenceTranslationResDto;
 import org.example.backend.entity.DifferenceSection;
@@ -144,11 +145,31 @@ public class DifferenceServiceImpl implements DifferenceService {
         return differenceResDtoList;
     }
 
+    @Transactional
+    @Override
+    public List<DifferenceHomeResDto> getDifferenceHome(String lang) {
+        return differenceSectionRepo.findAll().stream().map(section -> {
+            DifferenceHomeResDto dto = new DifferenceHomeResDto();
+            dto.setId(section.getId());
+            dto.setImgUrl(section.getImgUrl());
+
+            section.getTranslations().stream()
+                    .filter(t -> t.getLanguage().name().equalsIgnoreCase(lang))
+                    .findFirst()
+                    .ifPresent(t -> {
+                        dto.setTitle(t.getTitle());
+                        dto.setDescription(t.getDescription());
+                    });
+
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
     private String replaceImage(String oldImgUrl, MultipartFile newImg) {
         Optional.ofNullable(oldImgUrl)
                 .filter(url -> !url.isEmpty())
                 .map(url -> url.substring(url.lastIndexOf("/") + 1))
-                .map(fileName -> Paths.get(System.getProperty("user.dir"), "uploads", fileName))
+                .map(fileName -> Paths.get(System.getProperty("user.dir"), "uploads/icons", fileName))
                 .ifPresent(path -> {
                     try {
                         Files.deleteIfExists(path);
@@ -162,7 +183,7 @@ public class DifferenceServiceImpl implements DifferenceService {
 
     private String createImage(MultipartFile img) {
         try {
-            String uploadDir = System.getProperty("user.dir") + "/uploads";
+            String uploadDir = System.getProperty("user.dir") + "/uploads/icons";
             File uploadsFolder = new File(uploadDir);
 
             if (!uploadsFolder.exists()) {
@@ -174,7 +195,7 @@ public class DifferenceServiceImpl implements DifferenceService {
             img.transferTo(destination);
 
             // Agar rasmlar frontend static fayllarida ko‘rsatilsa:
-            return "/uploads/" + uniqueFileName;
+            return "/uploads/icons/" + uniqueFileName;
 
         } catch (IOException e) {
             e.printStackTrace(); // Konsolda to‘liq xatoni ko‘rsatish uchun
@@ -188,8 +209,8 @@ public class DifferenceServiceImpl implements DifferenceService {
 
         try {
             // uploads papkaga yo‘l
-            String uploadDir = System.getProperty("user.dir") + "/uploads";
-            File imageFile = new File(uploadDir + imgUrl.replace("/uploads", ""));
+            String uploadDir = System.getProperty("user.dir") + "/uploads/icons";
+            File imageFile = new File(uploadDir + imgUrl.replace("/uploads/icons", ""));
 
             if (imageFile.exists()) {
                 boolean deleted = imageFile.delete();

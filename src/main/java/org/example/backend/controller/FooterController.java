@@ -6,9 +6,6 @@ import org.example.backend.entity.FooterSection;
 import org.example.backend.services.footerService.FooterService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/footerSection")

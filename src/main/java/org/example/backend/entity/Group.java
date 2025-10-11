@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -53,6 +52,4 @@ public class Group {
             inverseJoinColumns = @JoinColumn(name = "student_id")
     )
     private List<User> students;
-
-
 }

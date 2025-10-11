@@ -3,6 +3,7 @@ package org.example.backend.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.AttendanceGroupDto;
 import org.example.backend.dto.AttendanceTodayGroupDto;
+import org.example.backend.dtoResponse.AttendanceDailyResDto;
 import org.example.backend.dtoResponse.AttendanceResDto;
 import org.example.backend.entity.Group;
 import org.example.backend.repository.GroupRepo;
@@ -35,39 +36,45 @@ public class AttendanceController {
 
     @GetMapping("/get")
     public ResponseEntity<?> getAttendance(
-            @RequestParam(required = false) UUID group,
+            @RequestParam UUID groupId,
             @RequestParam(defaultValue = "daily") String viewType,
-            @RequestParam(defaultValue = "#{T(java.time.LocalDate).now().year}") int year,
-            @RequestParam(defaultValue = "#{T(java.time.LocalDate).now().monthValue}") int month,
-            @RequestParam(defaultValue = "#{T(java.time.LocalDate).now().dayOfMonth}") int day
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer day,
+            @RequestParam(required = false) Integer week
     ) {
         try {
-            // agar frontenddan group UUID kelmasa, birinchi guruhni olib qo‘yamiz
-            if (group == null) {
-                group = groupRepo.findFirstByOrderByIdAsc()
-                        .map(Group::getId)
-                        .orElseThrow(() -> new RuntimeException("No group found"));
+            LocalDate now = LocalDate.now();
+
+            int y = year != null ? year : now.getYear();
+            int m = month != null ? month : now.getMonthValue();
+            int d = day != null ? day : now.getDayOfMonth();
+
+            LocalDate date = LocalDate.of(y, m, d);
+
+            List<AttendanceDailyResDto> attendanceList;
+
+            switch (viewType.toLowerCase()) {
+                case "weekly":
+                    attendanceList = attendanceService.getWeeklyAttendance(groupId, y, m, week);
+                    break;
+                case "monthly":
+                    attendanceList = attendanceService.getMonthlyAttendance(groupId, y, m);
+                    break;
+                default:
+                    attendanceList = attendanceService.getDailyAttendance(groupId, date);
+                    break;
             }
 
-            LocalDate date = LocalDate.of(year, month, day);
-            List<AttendanceResDto> attendanceList = attendanceService.getDailyAttendance(group, date);
             return ResponseEntity.ok(attendanceList);
-        }catch (Exception e) {
+        } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PostMapping("/day/{groupId}")
-    public ResponseEntity<?> addNewAttendance(@PathVariable UUID groupId) {
-        try {
-            return attendanceService.addNewAttendance(groupId);
-        }catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
 
-    }
-
-    @PostMapping("/{groupId}")
+    @PostMapping("saveAttendance/{groupId}")
     public ResponseEntity<?> createAttendance(@PathVariable UUID groupId, @RequestBody List<AttendanceGroupDto> attendanceGroupDtos) {
         try {
             attendanceService.markAttendance(groupId,attendanceGroupDtos);

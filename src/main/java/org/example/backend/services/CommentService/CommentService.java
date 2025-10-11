@@ -1,6 +1,7 @@
 package org.example.backend.services.CommentService;
 
 import org.example.backend.dto.CommentDto;
+import org.example.backend.dtoResponse.CommentHomeResDto;
 import org.example.backend.dtoResponse.CommentResDto;
 
 import java.util.List;
@@ -14,4 +15,7 @@ public interface CommentService {
     List<CommentResDto> getComments();
 
     void deleteComment(UUID id);
+
+    List<CommentHomeResDto> getConfirmedComments();
+
 }

@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.backend.Enum.PaymentStatus;
 
 import java.time.LocalDate;
 import java.util.Date;
@@ -24,8 +25,9 @@ public class Payment {
     private User student;
     @NotNull
     private LocalDate date;
-    @NotBlank
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentStatus paymentStatus;
     @NotNull
     private double paidAmount;
 

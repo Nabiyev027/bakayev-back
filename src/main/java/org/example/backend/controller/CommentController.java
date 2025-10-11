@@ -2,6 +2,7 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.CommentDto;
+import org.example.backend.dtoResponse.CommentHomeResDto;
 import org.example.backend.dtoResponse.CommentResDto;
 import org.example.backend.services.CommentService.CommentService;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +42,16 @@ public class CommentController {
     public ResponseEntity<?> getComments() {
         try {
             List<CommentResDto> list = commentService.getComments();
+            return ResponseEntity.ok(list);
+        }catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/home")
+    public ResponseEntity<?> getCommentsHome() {
+        try {
+            List<CommentHomeResDto> list = commentService.getConfirmedComments();
             return ResponseEntity.ok(list);
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

@@ -1,11 +1,12 @@
 package org.example.backend.Enum;
 
-public enum PaymentMethod {
-    CASH,
-    CARD;
+public enum PaymentStatus {
+    PENDING,
+    PAID;
 
     @Override
     public String toString() {
         return name(); // en, uz, ru
     }
+
 }

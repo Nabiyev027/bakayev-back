@@ -6,12 +6,10 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
-public class CommentResDto {
+public class CommentHomeResDto {
     private UUID id;
-    private String firstName;
-    private String lastName;
+    private String name;
     private String text;
-    private Boolean status;
     private LocalDate date;
     private Integer rate;
 }

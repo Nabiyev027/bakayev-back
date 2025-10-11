@@ -9,11 +9,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AttendanceResDto {
-    private UUID id;
-    private String studentFullName;
-    private String groupName;
-    private Boolean status; // true = Kelgan, false = Kelmagan
-    private String cause;
-    private LocalDate date;
-    private int attendancePercent; // 100% yoki 0%
+    private UUID studentId;
+    private String fullName;
+    private String status;
+    private String reason;
+    private Integer percent;
 }

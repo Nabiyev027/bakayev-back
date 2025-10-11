@@ -3,15 +3,14 @@ package org.example.backend.dtoResponse;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Data
-public class CommentResDto {
+public class LessonStudentByGroupResDto {
     private UUID id;
-    private String firstName;
-    private String lastName;
-    private String text;
-    private Boolean status;
     private LocalDate date;
-    private Integer rate;
+    private String weekDay;
+    private List<LessonStudentMarksResDto> marks;
+
 }

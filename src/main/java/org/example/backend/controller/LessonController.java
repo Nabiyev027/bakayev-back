@@ -3,6 +3,7 @@ package org.example.backend.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.StudentMarkDto;
 import org.example.backend.dtoResponse.LessonGroupResDto;
+import org.example.backend.dtoResponse.LessonStudentByGroupResDto;
 import org.example.backend.services.lessonService.LessonService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,17 @@ public class LessonController {
         try {
             LessonGroupResDto groupLesson = lessonService.getLessons(groupId);
             return ResponseEntity.ok(groupLesson);
+        }catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+    }
+
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<?> getStudentLessonsByGroupAndUserId(@PathVariable UUID studentId, @RequestParam UUID groupId, @RequestParam String type) {
+        try {
+            List<LessonStudentByGroupResDto> studentLessons = lessonService.getStudentLessonsByGroupIdAndUserIdAndType(studentId,groupId,type);
+            return ResponseEntity.ok(studentLessons);
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

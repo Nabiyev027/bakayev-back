@@ -2,6 +2,7 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dtoResponse.HeaderSectionDto;
+import org.example.backend.dtoResponse.HomeSectionResDto;
 import org.example.backend.services.headerService.HeaderService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,11 +17,20 @@ import org.springframework.web.multipart.MultipartFile;
 public class HeaderSectionController {
     private final HeaderService headerService;
 
-    @Transactional
     @GetMapping
     public ResponseEntity<?> getHeaderSection() {
         try {
             HeaderSectionDto header = headerService.getHeader();
+            return ResponseEntity.ok(header);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/home")
+    public ResponseEntity<?> getHeaderSectionInfo(@RequestParam String lang) {
+        try {
+            HomeSectionResDto header = headerService.getHeaderInfo(lang);
             return ResponseEntity.ok(header);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());

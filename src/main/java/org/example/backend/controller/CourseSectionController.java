@@ -18,7 +18,7 @@ import java.util.UUID;
 public class CourseSectionController {
     private final CourseService courseService;
 
-    @GetMapping("/getAll")
+    @GetMapping("/getHome")
     public ResponseEntity<?> getCourseWithCard(@RequestParam String lang) {
         try {
             List<CourseSectionWithCardDto> allCourses = courseService.getAllCoursesWithCard(lang);
@@ -28,7 +28,7 @@ public class CourseSectionController {
         }
     }
 
-    @GetMapping
+    @GetMapping("/get")
     public ResponseEntity<?> getCourse() {
         try {
             List<CourseSectionResDto> courseSectionResDtos = courseService.getCourses();

@@ -21,8 +21,7 @@ public interface LessonRepo extends JpaRepository<Lesson, UUID> {
 
     @Query(
             value = """
-        SELECT 
-            g.id as group_id,
+        SELECT g.id as group_id,
             g.start_time,
             g.end_time,
             u.id as student_id,

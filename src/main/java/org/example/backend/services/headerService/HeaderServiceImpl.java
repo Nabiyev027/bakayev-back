@@ -4,11 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.Enum.Lang;
 import org.example.backend.dtoResponse.HeaderSectionDto;
 import org.example.backend.dtoResponse.HeaderSectionTranslationResDto;
+import org.example.backend.dtoResponse.HomeSectionResDto;
 import org.example.backend.entity.HomeSection;
 import org.example.backend.entity.HomeSectionTranslation;
 import org.example.backend.repository.HeaderSectionRepo;
 import org.example.backend.repository.HomeSectionTranslationRepo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -63,6 +65,8 @@ public class HeaderServiceImpl implements HeaderService {
 
     }
 
+
+    @Transactional
     @Override
     public HeaderSectionDto getHeader() {
         HomeSection homeSection = headerSectionRepo.findAll()
@@ -84,6 +88,38 @@ public class HeaderServiceImpl implements HeaderService {
         headerSectionDto.setTranslations(translations);
 
         return headerSectionDto;
+    }
+
+    @Transactional
+    @Override
+    public HomeSectionResDto getHeaderInfo(String lang) {
+        // Langni stringdan enumga o‘tkazamiz (masalan: "uz" -> Lang.UZ)
+        Lang requestedLang;
+        try {
+            requestedLang = Lang.valueOf(lang.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Noto‘g‘ri til kiritildi: " + lang);
+        }
+
+        // Bitta HomeSection bo‘lishini kutamiz
+        HomeSection found = headerSectionRepo.findAll()
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("HomeSection da ma'lumot yo'q"));
+
+        HomeSectionResDto homeSectionResDto = new HomeSectionResDto();
+        homeSectionResDto.setImgUrl(found.getImgUrl());
+
+        // Tarjimalar ichidan keraklisini topamiz
+        found.getTranslations().stream()
+                .filter(t -> t.getLanguage() == requestedLang)
+                .findFirst()
+                .ifPresentOrElse(
+                        t -> homeSectionResDto.setTitle(t.getTitle()),
+                        () -> homeSectionResDto.setTitle("Tarjima topilmadi") // fallback
+                );
+
+        return homeSectionResDto;
     }
 
     private String replaceImage(String oldImgUrl, MultipartFile newImg) {

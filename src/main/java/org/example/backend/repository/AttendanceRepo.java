@@ -13,7 +13,8 @@ import java.util.UUID;
 
 @Repository
 public interface AttendanceRepo extends JpaRepository<Attendance, UUID> {
-    List<Attendance> getAttendancesByGroup(Group group);
+
+    List<Attendance> findByGroup_IdAndDateBetween(UUID groupId, LocalDate startDate, LocalDate endDate);
 
     Attendance getAttendanceByStudentAndDate(User user, LocalDate date);
 

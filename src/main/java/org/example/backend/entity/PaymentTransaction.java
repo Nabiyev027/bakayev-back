@@ -7,7 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.backend.Enum.PaymentMethod;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.UUID;
 
@@ -22,9 +24,11 @@ public class PaymentTransaction {
     @NotNull
     private double amount;
     @NotNull
-    private Date transactionDate;
-    @NotBlank
-    private String method;
+    private LocalDate transactionDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentMethod paymentMethod;
     @ManyToOne(fetch = FetchType.EAGER)
     private Payment payment;
 }

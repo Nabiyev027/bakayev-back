@@ -2,6 +2,7 @@ package org.example.backend.services.CommentService;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.CommentDto;
+import org.example.backend.dtoResponse.CommentHomeResDto;
 import org.example.backend.dtoResponse.CommentResDto;
 import org.example.backend.entity.Comment;
 import org.example.backend.repository.CommentRepo;
@@ -60,6 +61,7 @@ public class CommentServiceImpl implements CommentService {
             dto.setLastName(comment.getLastName());
             dto.setText(comment.getText());
             dto.setRate(comment.getRate());
+            dto.setDate(comment.getDate());
             dto.setStatus(comment.getStatus());
             list.add(dto);
         }
@@ -74,6 +76,25 @@ public class CommentServiceImpl implements CommentService {
         }
 
         commentRepo.deleteById(id);
+    }
+
+    @Override
+    public List<CommentHomeResDto> getConfirmedComments() {
+        List<CommentHomeResDto> list = new ArrayList<>();
+
+        commentRepo.findAll().forEach(comment -> {
+            if (comment.getStatus().equals(true)) {
+                CommentHomeResDto dto = new CommentHomeResDto();
+                dto.setId(comment.getId());
+                dto.setName(comment.getFirstName() + " " + comment.getLastName());
+                dto.setText(comment.getText());
+                dto.setRate(comment.getRate());
+                dto.setDate(comment.getDate());
+                list.add(dto);
+            }
+        });
+
+        return list;
     }
 
 

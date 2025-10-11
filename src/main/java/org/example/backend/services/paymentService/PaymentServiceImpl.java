@@ -1,14 +1,12 @@
 package org.example.backend.services.paymentService;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.Enum.PaymentMethod;
+import org.example.backend.Enum.PaymentStatus;
 import org.example.backend.dto.PaymentDto;
 import org.example.backend.dtoResponse.PaymentInfoResDto;
-import org.example.backend.entity.Payment;
-import org.example.backend.entity.PaymentCourseInfo;
-import org.example.backend.entity.User;
-import org.example.backend.repository.PaymentCourseInfoRepo;
-import org.example.backend.repository.PaymentRepo;
-import org.example.backend.repository.UserRepo;
+import org.example.backend.entity.*;
+import org.example.backend.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -22,17 +20,73 @@ public class PaymentServiceImpl implements PaymentService {
     private final UserRepo userRepo;
     private final PaymentRepo paymentRepo;
     private final PaymentCourseInfoRepo paymentCourseInfoRepo;
+    private final PaymentTransactionRepo paymentTransactionRepo;
+    private final DebtsRepo debtsRepo;
 
     @Override
     public void addPayment(PaymentDto paymentDto) {
-        User user = userRepo.findById(paymentDto.getStudentId()).get();
+        User user = userRepo.findById(paymentDto.getStudentId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Payment payment = new Payment();
-        payment.setStudent(user);
-        payment.setDate(LocalDate.now());
-        payment.setPaidAmount(paymentDto.getAmount());
-        paymentRepo.save(payment);
+        PaymentCourseInfo paymentCourseInfo = paymentCourseInfoRepo.findAll()
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Payment course Info not found"));
 
+        Integer courseAmount = paymentCourseInfo.getCoursePaymentAmount();
+        Integer paidAmount = paymentDto.getAmount();
+
+        // To'lov metodi
+        String method = PaymentMethod.CARD.toString().equals(paymentDto.getPaymentMethod().toUpperCase())
+                ? PaymentMethod.CARD.toString()
+                : PaymentMethod.CASH.toString();
+
+        // Nechta oy uchun to'langanini hisoblaymiz
+        int fullMonths = paidAmount / courseAmount;
+        int remainder = paidAmount % courseAmount;
+
+        // Har bir oy uchun payment yozamiz
+        for (int i = 0; i < fullMonths; i++) {
+            Payment monthlyPayment = new Payment();
+            monthlyPayment.setStudent(user);
+            monthlyPayment.setDate(LocalDate.now().plusMonths(i)); // keyingi oylar
+            monthlyPayment.setPaymentStatus(PaymentStatus.PAID);
+            monthlyPayment.setPaidAmount(courseAmount);
+
+            PaymentTransaction transaction = new PaymentTransaction();
+            transaction.setAmount(courseAmount);
+            transaction.setTransactionDate(LocalDate.now());
+            transaction.setPaymentMethod(PaymentMethod.valueOf(method));
+            transaction.setPayment(monthlyPayment);
+
+            paymentRepo.save(monthlyPayment);
+            paymentTransactionRepo.save(transaction);
+        }
+
+        // Agar ortib qolgan qismi bo'lsa (to'liq oy summasiga yetmagan)
+        if (remainder > 0) {
+            Payment nextPayment = new Payment();
+            nextPayment.setStudent(user);
+            nextPayment.setDate(LocalDate.now().plusMonths(fullMonths)); // keyingi oy
+            nextPayment.setPaymentStatus(PaymentStatus.PENDING); // to'liq emas
+            nextPayment.setPaidAmount(remainder);
+
+            PaymentTransaction nextTransaction = new PaymentTransaction();
+            nextTransaction.setAmount(remainder);
+            nextTransaction.setTransactionDate(LocalDate.now());
+            nextTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
+            nextTransaction.setPayment(nextPayment);
+
+            paymentRepo.save(nextPayment);
+            paymentTransactionRepo.save(nextTransaction);
+
+            // qarzdorlik yozamiz
+            int debt = courseAmount - remainder;
+            Debts debts = new Debts();
+            debts.setAmount(debt);
+            debts.setStudent(user);
+            debtsRepo.save(debts);
+        }
     }
 
     @Override

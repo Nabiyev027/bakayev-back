@@ -1,5 +1,7 @@
 package org.example.backend.services.teacherService;
 
+import org.example.backend.dtoResponse.TeacherSectionDataResDto;
+import org.example.backend.dtoResponse.TeacherSectionImgResDto;
 import org.example.backend.dtoResponse.TeacherSectionResDto;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,4 +34,9 @@ public interface TeacherService {
     void deleteTeacher(UUID id);
 
     List<TeacherSectionResDto> getTeacherSections();
+
+    List<TeacherSectionImgResDto> getTeacherSectionsWithImage();
+
+    TeacherSectionDataResDto getTeacherSectionsData(UUID teacherId, String lang);
+
 }

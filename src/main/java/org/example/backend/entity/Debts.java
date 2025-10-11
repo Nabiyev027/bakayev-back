@@ -22,5 +22,5 @@ public class Debts {
     private User student;
 
     @NotNull
-    private BigDecimal amount;
+    private Integer amount;
 }

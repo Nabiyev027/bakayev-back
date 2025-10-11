@@ -9,6 +9,7 @@ import org.example.backend.dtoResponse.StudentResDto;
 import org.example.backend.entity.User;
 import org.example.backend.services.groupService.GroupService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -45,6 +46,16 @@ public class GroupController {
     public ResponseEntity<?> getGroupByTeacher(@PathVariable UUID teacherId) {
         try{
             List<GroupsNamesDto> groups = groupService.getGroupsByTeacher(teacherId);
+            return  ResponseEntity.ok(groups);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<?> getGroupByStudent(@PathVariable UUID studentId) {
+        try{
+            List<GroupsNamesDto> groups = groupService.getGroupsByStudent(studentId);
             return  ResponseEntity.ok(groups);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());

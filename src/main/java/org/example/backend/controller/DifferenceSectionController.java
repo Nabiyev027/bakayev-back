@@ -1,8 +1,8 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dtoResponse.DifferenceHomeResDto;
 import org.example.backend.dtoResponse.DifferenceResDto;
-import org.example.backend.entity.DifferenceSection;
 import org.example.backend.services.differenceService.DifferenceService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +23,16 @@ public class DifferenceSectionController {
     public ResponseEntity<?> getDifferenceSection(){
         try {
             List<DifferenceResDto> difference = differenceService.getDifference();
+            return ResponseEntity.ok(difference);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/home")
+    public ResponseEntity<?> getDifferenceSection(@RequestParam String lang){
+        try {
+            List<DifferenceHomeResDto> difference = differenceService.getDifferenceHome(lang);
             return ResponseEntity.ok(difference);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());

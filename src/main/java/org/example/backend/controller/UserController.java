@@ -132,6 +132,16 @@ public class UserController {
         }
     }
 
+    @PutMapping("/changePassword/{userId}")
+    public ResponseEntity<?> changePasswordForAdmin(@PathVariable UUID userId, @RequestParam String newPassword){
+        try {
+            userService.changeEmployerPassword(userId, newPassword);
+            return ResponseEntity.ok("Password successfully changed");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable UUID id){
         try {

@@ -1,6 +1,8 @@
 package org.example.backend.controller;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dtoResponse.AboutSectionHomeResDto;
 import org.example.backend.dtoResponse.AboutSectionResDto;
 import org.example.backend.services.aboutService.AboutService;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +25,17 @@ public class AboutSectionController {
         try {
             AboutSectionResDto about = aboutService.getAbout();
             return ResponseEntity.ok(about);
-        }catch (Exception e){
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/home")
+    public ResponseEntity<?> getAboutSection(@RequestParam String lang) {
+        try {
+            AboutSectionHomeResDto about = aboutService.getAboutForHome(lang);
+            return ResponseEntity.ok(about);
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -31,25 +43,34 @@ public class AboutSectionController {
     @PostMapping
     public ResponseEntity<?> aboutPostAndUpdate(
             @RequestParam(required = false) MultipartFile img,
-                                                @RequestParam(required = false) MultipartFile video,
-                                                @RequestParam String description1Uz, @RequestParam String description1Ru,
-                                                @RequestParam String description1En, @RequestParam String description2Uz,
-                                                @RequestParam String description2Ru, @RequestParam String description2En){
+            @RequestParam(required = false) MultipartFile videoImg,
+            @RequestParam(required = false) MultipartFile video,
+            @RequestParam String description1Uz, @RequestParam String description1Ru,
+            @RequestParam String description1En, @RequestParam String description2Uz,
+            @RequestParam String description2Ru, @RequestParam String description2En,
+            @RequestParam Integer successfulStudents,
+            @RequestParam Double averageScore,
+            @RequestParam Integer yearsExperience,
+            @RequestParam Integer successRate) {
+
+
         try {
-            aboutService.aboutPostAndUpdate(img,video,description1Uz,description1Ru,description1En,description2Uz,description2Ru,description2En);
+            aboutService.aboutPostAndUpdate(img, videoImg, video, description1Uz, description1Ru,
+                    description1En, description2Uz, description2Ru, description2En,
+                    successfulStudents, averageScore, yearsExperience, successRate);
             return ResponseEntity.ok("Successfully added about");
-        }catch (Exception e){
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteAbout(@PathVariable UUID id){
-        try{
+    public ResponseEntity<?> deleteAbout(@PathVariable UUID id) {
+        try {
             aboutService.deleteAbout(id);
             return ResponseEntity.ok("Successfully deleted");
-        }catch (Exception e){
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

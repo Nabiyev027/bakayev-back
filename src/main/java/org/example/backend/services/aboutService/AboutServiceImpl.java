@@ -2,6 +2,7 @@ package org.example.backend.services.aboutService;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.Enum.Lang;
+import org.example.backend.dtoResponse.AboutSectionHomeResDto;
 import org.example.backend.dtoResponse.AboutSectionResDto;
 import org.example.backend.dtoResponse.AboutSectionTranslationResDto;
 import org.example.backend.entity.AboutSection;
@@ -36,8 +37,14 @@ public class AboutServiceImpl implements AboutService{
                 .orElseThrow(() -> new RuntimeException("About section not found"));
 
         AboutSectionResDto aboutSectionResDto = new AboutSectionResDto();
+        aboutSectionResDto.setId(found.getId());
         aboutSectionResDto.setImgUrl(found.getImgUrl());
         aboutSectionResDto.setVideoUrl(found.getVideoUrl());
+        aboutSectionResDto.setVideoThumbnailUrl(found.getVideoThumbnailUrl());
+        aboutSectionResDto.setAverageScore(found.getAverageScore());
+        aboutSectionResDto.setSuccessfulStudents(found.getSuccessfulStudents());
+        aboutSectionResDto.setYearsExperience(found.getYearsExperience());
+        aboutSectionResDto.setSuccessRate(found.getSuccessRate());
 
         List<AboutSectionTranslationResDto> translationDtos = found.getTranslations()
                 .stream()
@@ -54,13 +61,47 @@ public class AboutServiceImpl implements AboutService{
         return aboutSectionResDto;
     }
 
+    @Transactional
     @Override
-    public void aboutPostAndUpdate(MultipartFile img, MultipartFile video, String description1Uz,
+    public AboutSectionHomeResDto getAboutForHome(String lang) {
+        AboutSection found = aboutSectionRepo.findAll()
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("About section not found"));
+
+        AboutSectionHomeResDto dto = new AboutSectionHomeResDto();
+        dto.setId(found.getId());
+        dto.setImgUrl(found.getImgUrl());
+        dto.setVideoUrl(found.getVideoUrl());
+        dto.setVideoThumbnailUrl(found.getVideoThumbnailUrl());
+        dto.setSuccessfulStudents(found.getSuccessfulStudents());
+        dto.setAverageScore(found.getAverageScore());
+        dto.setYearsExperience(found.getYearsExperience());
+        dto.setSuccessRate(found.getSuccessRate());
+
+        found.getTranslations().forEach(translation->{
+            if (translation.getLanguage().toString().equals(lang)) {
+               dto.setDesc1(translation.getDescription1());
+               dto.setDesc2(translation.getDescription2());
+            }
+        });
+
+        return dto;
+    }
+
+    @Override
+    public void aboutPostAndUpdate(MultipartFile img, MultipartFile videoImg, MultipartFile video, String description1Uz,
                                    String description1Ru, String description1En, String description2Uz,
-                                   String description2Ru, String description2En) {
+                                   String description2Ru, String description2En, Integer successfulStudents,
+                                   Double averageScore, Integer yearsExperience, Integer successRate) {
 
         AboutSection aboutSection = aboutSectionRepo.findTopByOrderByIdAsc()
                 .orElse(new AboutSection());
+
+        aboutSection.setSuccessfulStudents(successfulStudents);
+        aboutSection.setAverageScore(averageScore);
+        aboutSection.setYearsExperience(yearsExperience);
+        aboutSection.setSuccessRate(successRate);
 
         // 1. Rasmni yuklash yoki almashtirish
         if (img != null && !img.isEmpty()) {
@@ -70,8 +111,15 @@ public class AboutServiceImpl implements AboutService{
             aboutSection.setImgUrl(newImg);
         }
 
-        // 2. Videoni yuklash yoki almashtirish
+        if (videoImg != null && !videoImg.isEmpty()) {
+            String newVideoThumbnail = aboutSection.getVideoThumbnailUrl() != null
+                    ? replaceVideoThumbnail(aboutSection.getVideoThumbnailUrl(), videoImg)
+                    : createVideoThumbnail(videoImg);
+            aboutSection.setVideoThumbnailUrl(newVideoThumbnail);
+        }
+
         if (video != null && !video.isEmpty()) {
+            // Video saqlash
             String newVid = aboutSection.getVideoUrl() != null
                     ? replaceVideo(aboutSection.getVideoUrl(), video)
                     : createVideo(video);
@@ -106,6 +154,8 @@ public class AboutServiceImpl implements AboutService{
         aboutSectionTranslationRepo.deleteAll(about.getTranslations());
         aboutSectionRepo.delete(about);
     }
+
+
 
     private String replaceImage(String oldImgUrl, MultipartFile newImg) {
         Optional.ofNullable(oldImgUrl)
@@ -144,6 +194,45 @@ public class AboutServiceImpl implements AboutService{
             throw new RuntimeException("Rasmni saqlab bo‘lmadi: " + e.getMessage(), e);
         }
 
+    }
+
+    private String createVideoThumbnail(MultipartFile img) {
+        try {
+            String uploadDir = System.getProperty("user.dir") + "/uploads/videoThumbnails";
+            File uploadsFolder = new File(uploadDir);
+
+            if (!uploadsFolder.exists()) {
+                uploadsFolder.mkdirs();
+            }
+
+            String uniqueFileName = UUID.randomUUID().toString() + "_" + img.getOriginalFilename();
+            File destination = new File(uploadsFolder, uniqueFileName);
+            img.transferTo(destination);
+
+            // Agar rasmlar frontend static fayllarida ko‘rsatilsa:
+            return "/uploads/videoThumbnails/" + uniqueFileName;
+
+        } catch (IOException e) {
+            e.printStackTrace(); // Konsolda to‘liq xatoni ko‘rsatish uchun
+            throw new RuntimeException("Rasmni saqlab bo‘lmadi: " + e.getMessage(), e);
+        }
+
+    }
+
+    private String replaceVideoThumbnail(String oldImgUrl, MultipartFile newImg) {
+        Optional.ofNullable(oldImgUrl)
+                .filter(url -> !url.isEmpty())
+                .map(url -> url.substring(url.lastIndexOf("/") + 1))
+                .map(fileName -> Paths.get(System.getProperty("user.dir"), "uploads/videoThumbnails", fileName))
+                .ifPresent(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException e) {
+                        System.err.println("Eski rasmni o‘chirishda xatolik: " + e.getMessage());
+                    }
+                });
+
+        return createVideoThumbnail(newImg);
     }
 
     public void deleteImage(String imgUrl) {
@@ -205,4 +294,11 @@ public class AboutServiceImpl implements AboutService{
             throw new RuntimeException("Videoni saqlab bo‘lmadi: " + e.getMessage(), e);
         }
     }
+
+
+
+
+
+
+
 }

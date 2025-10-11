@@ -3,10 +3,7 @@ package org.example.backend.services.courseService;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.Enum.Lang;
 import org.example.backend.dtoResponse.*;
-import org.example.backend.entity.CourseCard;
-import org.example.backend.entity.CourseCardTranslation;
-import org.example.backend.entity.CourseSection;
-import org.example.backend.entity.CourseSectionTranslation;
+import org.example.backend.entity.*;
 import org.example.backend.repository.CardSkillRepo;
 import org.example.backend.repository.CourseCardRepo;
 import org.example.backend.repository.CourseSectionRepo;
@@ -132,6 +129,7 @@ public class CourseServiceImpl implements CourseService{
                 CourseCardDto cardDto = new CourseCardDto();
                 cardDto.setId(card.getId());
                 cardDto.setImageUrl(card.getImageUrl());
+                cardDto.setRating(card.getRating());
 
                 List<CourseCardTranslation> cardTranslations = card.getTranslations();
                 for (CourseCardTranslation cardTranslation : cardTranslations) {
@@ -141,6 +139,23 @@ public class CourseServiceImpl implements CourseService{
                     }
                 }
 
+                List<CardSkillDto> cardSkillDtos = new ArrayList<>();
+                for (CardSkill cardSkill : card.getCardSkills()) {
+                    CardSkillDto cardSkillDto = new CardSkillDto();
+                    cardSkillDto.setId(cardSkill.getId());
+
+                    List<CardSkillTranslation> skillTranslations = cardSkill.getTranslations();
+                    for (CardSkillTranslation skillTranslation : skillTranslations) {
+                        if(lang.equals(skillTranslation.getLanguage().toString())) {
+                            cardSkillDto.setTitle(skillTranslation.getTitle());
+                            break;
+                        }
+                    }
+
+                    cardSkillDtos.add(cardSkillDto);
+
+                }
+                cardDto.setCardSkills(cardSkillDtos);
                 cardDtos.add(cardDto);
             }
 

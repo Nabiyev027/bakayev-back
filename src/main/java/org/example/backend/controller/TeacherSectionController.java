@@ -1,6 +1,8 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dtoResponse.TeacherSectionDataResDto;
+import org.example.backend.dtoResponse.TeacherSectionImgResDto;
 import org.example.backend.dtoResponse.TeacherSectionResDto;
 import org.example.backend.services.teacherService.TeacherService;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,28 @@ import java.util.UUID;
 @CrossOrigin
 public class TeacherSectionController {
     private final TeacherService teacherService;
+
+    @GetMapping("/getHome")
+    public ResponseEntity<?> getTeacherForHome() {
+        try {
+            List<TeacherSectionImgResDto> teacherSections = teacherService.getTeacherSectionsWithImage();
+            return ResponseEntity.ok(teacherSections);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/getInfo/{teacherId}")
+    public ResponseEntity<?> getTeacherInfoForHome(@PathVariable UUID teacherId, @RequestParam String lang) {
+        try {
+            TeacherSectionDataResDto teacherSections = teacherService.getTeacherSectionsData(teacherId, lang);
+            return ResponseEntity.ok(teacherSections);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
 
     @GetMapping
     public ResponseEntity<?> getTeacherInfo() {

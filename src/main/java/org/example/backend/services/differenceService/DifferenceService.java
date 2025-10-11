@@ -1,5 +1,6 @@
 package org.example.backend.services.differenceService;
 
+import org.example.backend.dtoResponse.DifferenceHomeResDto;
 import org.example.backend.dtoResponse.DifferenceResDto;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,4 +20,6 @@ public interface DifferenceService {
                  String titleEn, String descriptionEn);
 
     List<DifferenceResDto> getDifference();
+
+    List<DifferenceHomeResDto> getDifferenceHome(String lang);
 }
