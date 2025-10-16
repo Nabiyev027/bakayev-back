@@ -11,6 +11,7 @@ import java.util.UUID;
 public class AttendanceResDto {
     private UUID studentId;
     private String fullName;
+    private String phone;
     private String status;
     private String reason;
     private Integer percent;

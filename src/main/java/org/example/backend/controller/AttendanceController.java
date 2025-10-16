@@ -4,8 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.AttendanceGroupDto;
 import org.example.backend.dto.AttendanceTodayGroupDto;
 import org.example.backend.dtoResponse.AttendanceDailyResDto;
-import org.example.backend.dtoResponse.AttendanceResDto;
-import org.example.backend.entity.Group;
 import org.example.backend.repository.GroupRepo;
 import org.example.backend.services.attendance.AttendanceService;
 import org.springframework.http.ResponseEntity;
@@ -74,21 +72,11 @@ public class AttendanceController {
     }
 
 
-    @PostMapping("saveAttendance/{groupId}")
-    public ResponseEntity<?> createAttendance(@PathVariable UUID groupId, @RequestBody List<AttendanceGroupDto> attendanceGroupDtos) {
+    @PutMapping("/save/{groupId}")
+    public ResponseEntity<?> markAttendance(@PathVariable UUID groupId, @RequestBody List<AttendanceGroupDto> attendanceGroupDtos) {
         try {
             attendanceService.markAttendance(groupId,attendanceGroupDtos);
             return ResponseEntity.ok("Attendance entered!");
-        }catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @PutMapping("/{groupId}")
-    public ResponseEntity<?> editAttendance(@PathVariable UUID groupId, @RequestBody List<AttendanceGroupDto> attendanceGroupDtos) {
-        try {
-            attendanceService.editAttendance(groupId,attendanceGroupDtos);
-            return ResponseEntity.ok("Attendance changed!");
         }catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

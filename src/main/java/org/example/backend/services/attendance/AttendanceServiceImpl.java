@@ -11,7 +11,6 @@ import org.example.backend.entity.User;
 import org.example.backend.repository.AttendanceRepo;
 import org.example.backend.repository.GroupRepo;
 import org.example.backend.repository.UserRepo;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,46 +28,31 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final UserRepo userRepo;
     private final AttendanceRepo attendanceRepo;
 
+    @Transactional
     @Override
     public void markAttendance(UUID groupId, List<AttendanceGroupDto> attendanceGroupDtos) {
-        attendanceGroupDtos.forEach(user -> {
-            Attendance attendance = new Attendance();
-            Group group = groupRepo.findById(groupId).get();
-            attendance.setGroup(group);
-            User student = userRepo.findById(user.getStudentId()).get();
-            attendance.setStudent(student);
-            attendance.setStatus(user.getStatus());
-            attendance.setCause(user.getCause());
-            attendance.setDate(LocalDate.now());
-            attendanceRepo.save(attendance);
-        });
 
-    }
-
-    @Override
-    public void editAttendance(UUID groupId, List<AttendanceGroupDto> attendanceGroupDtos) {
         LocalDate today = LocalDate.now();
 
         Group group = groupRepo.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
 
-        attendanceGroupDtos.forEach(userDto -> {
-            User student = userRepo.findById(userDto.getStudentId())
+        for (AttendanceGroupDto dto : attendanceGroupDtos) {
+
+            User student = userRepo.findById(dto.getStudentId())
                     .orElseThrow(() -> new RuntimeException("Student not found"));
 
-            // Bugungi sana va studentga tegishli davomatni topamiz
-            Optional<Attendance> optionalAttendance = attendanceRepo
-                    .findByGroupAndStudentAndDate(group, student, today);
+            // Mavjud davomatni topamiz
+            Attendance existingAttendance = attendanceRepo.findByGroupAndStudentAndDate(group, student, today);
 
-            if (optionalAttendance.isPresent()) {
-                Attendance attendance = optionalAttendance.get();
-                attendance.setStatus(userDto.getStatus());
-                attendance.setCause(userDto.getCause());
-                attendanceRepo.save(attendance);
-            } else {
-                throw new RuntimeException("Attendance not found for student: " + student.getId());
+            if (existingAttendance != null) {
+                // Faqat mavjud bo‘lsa — yangilaymiz
+                existingAttendance.setStatus(dto.getStatus());
+                existingAttendance.setCause(dto.getCause());
+                attendanceRepo.save(existingAttendance);
             }
-        });
+            // Aks holda hech narsa qilmaymiz (yangi yozuv yaratilmaydi)
+        }
     }
 
     @Transactional
@@ -110,7 +94,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 newRecord.setGroup(group);
                 newRecord.setStudent(student);
                 newRecord.setDate(date);
-                newRecord.setStatus(null);
+                newRecord.setStatus("none");
                 newRecord.setCause(null);
                 attendanceRepo.save(newRecord);
             }
@@ -158,9 +142,11 @@ public class AttendanceServiceImpl implements AttendanceService {
                             .map(record -> {
                                 int percent = "present".equals(record.getStatus()) ? 100 : 0;
                                 String fullName = record.getStudent().getFirstName() + " " + record.getStudent().getLastName();
+                                String phone = record.getStudent().getPhone();
                                 return new AttendanceResDto(
                                         record.getStudent().getId(),
                                         fullName,
+                                        phone,
                                         record.getStatus(),
                                         record.getCause(),
                                         percent
