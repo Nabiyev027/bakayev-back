@@ -54,6 +54,4 @@ public interface UserRepo extends JpaRepository<User, UUID> {
             """)
     Optional<User> findByIdWithGroups(@Param("id") UUID id);
 
-
-
 }

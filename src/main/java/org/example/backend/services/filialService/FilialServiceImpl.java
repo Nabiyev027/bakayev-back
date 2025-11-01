@@ -5,9 +5,12 @@ import org.example.backend.dtoResponse.FilialDto;
 import org.example.backend.dtoResponse.RoomResDto;
 import org.example.backend.entity.Filial;
 import org.example.backend.entity.Room;
+import org.example.backend.entity.User;
 import org.example.backend.repository.FilialRepo;
 import org.example.backend.repository.RoomRepo;
+import org.example.backend.repository.UserRepo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -23,6 +26,7 @@ public class FilialServiceImpl implements FilialService {
 
     private final FilialRepo filialRepo;
     private final RoomRepo roomRepo;
+    private final UserRepo userRepo;
 
     @Override
     public List<FilialDto> getFilials() {
@@ -98,6 +102,25 @@ public class FilialServiceImpl implements FilialService {
 
         filialRepo.delete(filial1);
     }
+    
+
+    @Transactional
+    @Override
+    public FilialDto getFilialById(UUID id) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Foydalanuvchi topilmadi: " + id));
+        List<Filial> filials = user.getFilials();
+        if (filials == null || filials.isEmpty()) {
+            throw new RuntimeException("Bu foydalanuvchiga biriktirilgan filial topilmadi: " + id);
+        }
+        Filial filialF = filials.get(0); // yoki filials.get(0);
+        FilialDto filialDto = new FilialDto();
+        filialDto.setId(filialF.getId());
+        filialDto.setName(filialF.getName());
+        filialDto.setDescription(filialF.getDescription());
+        return filialDto;
+    }
+
 
     private String createImage(MultipartFile img) {
         try {

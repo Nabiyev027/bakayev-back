@@ -1,5 +1,6 @@
 package org.example.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -7,10 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Entity(name = "filial")
 @Data
@@ -37,11 +35,12 @@ public class Filial {
     @OneToMany(mappedBy = "filial", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Room> rooms;
 
-    @ManyToMany(mappedBy = "filials", cascade = CascadeType.ALL)
-    private List<User> users;
-
     @OneToMany(mappedBy = "filial", cascade = CascadeType.ALL)
     private List<Group> groups;
+
+    @ManyToMany(mappedBy = "filials", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<User> users = new ArrayList<>();
 
 }
 

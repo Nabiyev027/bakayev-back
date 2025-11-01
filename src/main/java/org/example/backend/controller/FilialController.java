@@ -30,6 +30,16 @@ public class FilialController {
         }
     }
 
+    @GetMapping("/getOne/{id}")
+    public ResponseEntity<?> getFilials(@PathVariable UUID id) {
+        try {
+            FilialDto filial = filialService.getFilialById(id);
+            return ResponseEntity.ok(filial);
+        }catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PostMapping
     public ResponseEntity<?> addFilial(@RequestParam("name") String name, @RequestParam("description") String description,
                                        @RequestParam("location") String location, @RequestParam("image") MultipartFile image) {

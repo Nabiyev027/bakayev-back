@@ -10,7 +10,9 @@ import lombok.NoArgsConstructor;
 import org.example.backend.Enum.PaymentMethod;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "payment_transaction")
@@ -21,14 +23,18 @@ public class PaymentTransaction {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
     @NotNull
-    private double amount;
+    private Integer amount;
+
     @NotNull
     private LocalDate transactionDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentMethod paymentMethod;
-    @ManyToOne(fetch = FetchType.EAGER)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id")
     private Payment payment;
 }

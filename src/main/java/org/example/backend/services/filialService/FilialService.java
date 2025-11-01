@@ -13,4 +13,6 @@ public interface FilialService {
     void updateFilial(String id,String name, String description, String location, MultipartFile image);
 
     void deleteFilial(UUID id);
+
+    FilialDto getFilialById(UUID id);
 }

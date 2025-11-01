@@ -49,5 +49,7 @@ public interface UserService {
     List<StudentNameResDto> getStudentsByGroup(UUID groupId);
 
     void changeEmployerPassword(UUID userId, String newPassword);
+
+    List<TeacherNameDto> getTeachersByFilial(UUID filialId);
 }
 

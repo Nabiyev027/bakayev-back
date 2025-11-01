@@ -64,6 +64,16 @@ public class UserController {
         }
     }
 
+    @GetMapping("/teacher/{filialId}")
+    public ResponseEntity<?> getTeachers(@PathVariable UUID filialId) {
+        try {
+            List<TeacherNameDto> teachers = userService.getTeachersByFilial(filialId);
+            return ResponseEntity.ok(teachers);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable UUID id) {
         try {

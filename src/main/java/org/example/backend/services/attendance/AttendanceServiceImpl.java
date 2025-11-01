@@ -87,26 +87,27 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         // Agar hozircha hech narsa yozilmagan bo‘lsa, yangi yozuvlar yaratamiz
         if (records.isEmpty()) {
-            Group group = groupRepo.findById(groupId).orElseThrow();
+            Group group = groupRepo.findById(groupId)
+                    .orElseThrow(() -> new RuntimeException("Group not found"));
 
-            for (User student : group.getStudents()) {
-                Attendance newRecord = new Attendance();
-                newRecord.setGroup(group);
-                newRecord.setStudent(student);
-                newRecord.setDate(date);
-                newRecord.setStatus("none");
-                newRecord.setCause(null);
-                attendanceRepo.save(newRecord);
-            }
+            List<Attendance> newRecords = group.getStudents().stream().map(student -> {
+                Attendance record = new Attendance();
+                record.setGroup(group);
+                record.setStudent(student);
+                record.setDate(date);
+                record.setStatus("none");
+                record.setCause(null);
+                return attendanceRepo.save(record);
+            }).toList();
 
-            records = attendanceRepo.findByGroup_IdAndDate(groupId, date);
+            records = newRecords;
         }
 
         return mapToDto(records);
     }
 
 
-
+    @Transactional
     @Override
     public List<AttendanceDailyResDto> getWeeklyAttendance(UUID groupId, int year, int month, Integer weekNumber) {
         LocalDate firstDayOfMonth = LocalDate.of(year, month, 1);
@@ -117,48 +118,111 @@ public class AttendanceServiceImpl implements AttendanceService {
         LocalDate endOfWeek = startOfWeek.plusDays(6);
 
         List<Attendance> records = attendanceRepo.findByGroup_IdAndDateBetween(groupId, startOfWeek, endOfWeek);
-        return mapToDto(records);
+
+        return mapToDtoWithAverage(records);
     }
 
+    @Transactional
     @Override
     public List<AttendanceDailyResDto> getMonthlyAttendance(UUID groupId, int year, int month) {
         LocalDate startOfMonth = LocalDate.of(year, month, 1);
         LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
 
         List<Attendance> records = attendanceRepo.findByGroup_IdAndDateBetween(groupId, startOfMonth, endOfMonth);
-        return mapToDto(records);
+
+        return mapToDtoWithAverage(records);
+    }
+
+    private List<AttendanceDailyResDto> mapToDtoWithAverage(List<Attendance> records) {
+        // Talaba bo‘yicha o‘rtacha percentni hisoblash
+        Map<UUID, List<Integer>> studentPercentMap = new HashMap<>();
+        for (Attendance record : records) {
+            int percent = "present".equals(record.getStatus()) ? 100 : 0;
+            studentPercentMap.computeIfAbsent(record.getStudent().getId(), k -> new ArrayList<>()).add(percent);
+        }
+
+        Map<UUID, Integer> studentAveragePercent = new HashMap<>();
+        studentPercentMap.forEach((studentId, percents) -> {
+            int sum = percents.stream().mapToInt(Integer::intValue).sum();
+            int avg = percents.isEmpty() ? 0 : sum / percents.size();
+            studentAveragePercent.put(studentId, avg);
+        });
+
+        // Kunlik DTO larni yaratish
+        return records.stream()
+                .collect(Collectors.groupingBy(Attendance::getDate))
+                .entrySet().stream()
+                .map(entry -> {
+                    LocalDate date = entry.getKey();
+                    List<AttendanceResDto> list = entry.getValue().stream()
+                            .map(record -> new AttendanceResDto(
+                                    record.getStudent().getId(),
+                                    record.getStudent().getFirstName() + " " + record.getStudent().getLastName(),
+                                    record.getStudent().getPhone(),
+                                    record.getStatus(),
+                                    record.getCause(),
+                                    studentAveragePercent.get(record.getStudent().getId())  // o‘rtacha percent
+                            )).toList();
+                    return new AttendanceDailyResDto(date, list);
+                })
+                .sorted(Comparator.comparing(AttendanceDailyResDto::getDate))
+                .toList();
     }
 
 
 
     private List<AttendanceDailyResDto> mapToDto(List<Attendance> records) {
-        return records.stream()
-                .collect(Collectors.groupingBy(Attendance::getDate)) // sanaga qarab guruhlash
-                .entrySet()
-                .stream()
-                .map(entry -> {
-                    LocalDate date = entry.getKey();
-                    List<AttendanceResDto> attendanceList = entry.getValue().stream()
-                            .map(record -> {
-                                int percent = "present".equals(record.getStatus()) ? 100 : 0;
-                                String fullName = record.getStudent().getFirstName() + " " + record.getStudent().getLastName();
-                                String phone = record.getStudent().getPhone();
-                                return new AttendanceResDto(
+        // Sanaga qarab guruhlash
+        Map<LocalDate, List<AttendanceResDto>> dailyMap = records.stream()
+                .collect(Collectors.groupingBy(Attendance::getDate))
+                .entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream()
+                                .map(record -> new AttendanceResDto(
                                         record.getStudent().getId(),
-                                        fullName,
-                                        phone,
+                                        record.getStudent().getFirstName() + " " + record.getStudent().getLastName(),
+                                        record.getStudent().getPhone(),
                                         record.getStatus(),
                                         record.getCause(),
-                                        percent
-                                );
-                            })
-                            .toList();
+                                        "present".equals(record.getStatus()) ? 100 : 0  // kunlik foiz
+                                ))
+                                .toList()
+                ));
 
-                    return new AttendanceDailyResDto(date, attendanceList);
+        // Talaba bo‘yicha umumiy foiz (haftalik yoki oylik)
+        Map<UUID, List<Integer>> studentPercentMap = new HashMap<>();
+        for (Attendance record : records) {
+            int percent = "present".equals(record.getStatus()) ? 100 : 0;
+            studentPercentMap.computeIfAbsent(record.getStudent().getId(), k -> new ArrayList<>()).add(percent);
+        }
+
+        Map<UUID, Integer> studentOverallPercent = new HashMap<>();
+        studentPercentMap.forEach((studentId, percents) -> {
+            int sum = percents.stream().mapToInt(Integer::intValue).sum();
+            int avg = percents.isEmpty() ? 0 : sum / percents.size();  // o‘rtacha foiz
+            studentOverallPercent.put(studentId, avg);
+        });
+
+        // Har bir sanani map qilish va umumiy foizni qo‘shish
+        return dailyMap.entrySet().stream()
+                .map(entry -> {
+                    LocalDate date = entry.getKey();
+                    List<AttendanceResDto> list = entry.getValue().stream()
+                            .map(dto -> {
+                                dto.setPercent(studentOverallPercent.get(dto.getStudentId())); // haftalik/oylik foiz
+                                return dto;
+                            }).toList();
+                    return new AttendanceDailyResDto(date, list);
                 })
-                .sorted(Comparator.comparing(AttendanceDailyResDto::getDate)) // sanalar tartibda bo‘lsin
+                .sorted(Comparator.comparing(AttendanceDailyResDto::getDate))
                 .toList();
     }
+
+
+
+
+
 
 
 }

@@ -477,6 +477,30 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public List<TeacherNameDto> getTeachersByFilial(UUID filialId) {
+        Filial filial = filialRepo.findById(filialId)
+                .orElseThrow(() -> new RuntimeException("Filial topilmadi"));
+
+        List<TeacherNameDto> teachers = new ArrayList<>();
+
+        filial.getUsers().forEach(user -> {
+            boolean isTeacher = user.getRoles().stream()
+                    .anyMatch(role -> "ROLE_TEACHER".equals(role.getName())); // to‘g‘rilangan joy!
+
+            if (isTeacher) {
+                TeacherNameDto dto = new TeacherNameDto();
+                dto.setId(user.getId());
+                dto.setName(user.getFirstName() + " " + user.getLastName());
+                teachers.add(dto);
+            }
+        });
+
+        return teachers;
+    }
+
+
 
     @Transactional
     @Override
