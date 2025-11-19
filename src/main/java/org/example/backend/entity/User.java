@@ -70,6 +70,10 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "student")
     private List<Debts> debts;
 
+    @OneToOne(mappedBy = "student", cascade = CascadeType.ALL)
+    private Discount discount;
+
+
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ExamGrades> examGrades = new ArrayList<>();
 

@@ -19,6 +19,10 @@ public class Discount {
     @NotBlank
     private String title;
     private Integer quantity;
-    @ManyToOne(fetch = FetchType.EAGER)
+
+    @OneToOne
+    @JoinColumn(name = "student_id")
     private User student;
+
+
 }

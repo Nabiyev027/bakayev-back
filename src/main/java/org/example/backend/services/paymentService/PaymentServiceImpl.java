@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,10 +28,234 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentTransactionRepo paymentTransactionRepo;
     private final DebtsRepo debtsRepo;
     private final GroupRepo groupRepo;
+    private final DiscountRepo discountRepo;
+
+
+//    @Transactional
+//    @Override
+//    public void addPayment(PaymentDto paymentDto) {
+//
+//        User user = userRepo.findById(paymentDto.getStudentId())
+//                .orElseThrow(() -> new RuntimeException("User not found"));
+//
+//        PaymentCourseInfo paymentCourseInfo = paymentCourseInfoRepo.findAll()
+//                .stream()
+//                .findFirst()
+//                .orElseThrow(() -> new RuntimeException("Payment course Info not found"));
+//
+//        Integer courseAmount = paymentCourseInfo.getCoursePaymentAmount();
+//        Integer paidAmount = paymentDto.getAmount();
+//
+//        // ==============================
+//        //  DISCOUNT HISOBLASH
+//        // ==============================
+//        Discount discount = discountRepo.findByStudent(user);
+//        int discountAmount = (discount != null) ? discount.getQuantity() : 0;
+//
+//        int realCourseAmount = courseAmount - discountAmount;
+//        if (realCourseAmount < 0) realCourseAmount = 0;
+//        // ==============================
+//
+//        String method = PaymentMethod.CARD.toString().equals(paymentDto.getPaymentMethod().toUpperCase())
+//                ? PaymentMethod.CARD.toString()
+//                : PaymentMethod.CASH.toString();
+//
+//        List<Debts> debts = user.getDebts();
+//
+//        if (!debts.isEmpty()) {
+//
+//            for (Debts debt : debts) {
+//
+//                if (paidAmount > debt.getAmount()) {
+//
+//                    Integer distinction = paidAmount - debt.getAmount();
+//
+//                    debtsRepo.delete(debt);
+//
+//                    Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user, PaymentStatus.PENDING);
+//                    if (payment == null) {
+//                        payment = new Payment();
+//                        payment.setStudent(user);
+//                        payment.setDate(LocalDate.now());
+//                    }
+//
+//                    payment.setPaidAmount(realCourseAmount);
+//                    payment.setPaymentStatus(PaymentStatus.PAID);
+//                    payment.setDiscountAmount(discountAmount);
+//                    Payment saved1 = paymentRepo.save(payment);
+//
+//                    PaymentTransaction paymentTransaction = new PaymentTransaction();
+//                    paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
+//                    Integer nextPay = paidAmount - debt.getAmount();
+//                    paymentTransaction.setAmount(nextPay);
+//                    paymentTransaction.setTransactionDate(LocalDate.now());
+//                    paymentTransaction.setPayment(saved1);
+//                    paymentTransactionRepo.save(paymentTransaction);
+//
+//                    if (distinction > 0) {
+//
+//                        int nextMonthDebt = realCourseAmount - distinction + discountAmount;
+//
+//                        Payment paymentNextMonth = new Payment();
+//                        paymentNextMonth.setStudent(user);
+//                        paymentNextMonth.setPaidAmount(distinction);
+//                        paymentNextMonth.setPaymentStatus(PaymentStatus.PENDING);
+//                        paymentNextMonth.setDiscountAmount(discountAmount);
+//                        paymentNextMonth.setDate(LocalDate.now().plusMonths(1));
+//                        Payment savedNext = paymentRepo.save(paymentNextMonth);
+//
+//                        PaymentTransaction paymentTransactionForNextPayment = new PaymentTransaction();
+//                        paymentTransactionForNextPayment.setPaymentMethod(PaymentMethod.valueOf(method));
+//                        paymentTransactionForNextPayment.setAmount(distinction);
+//                        paymentTransactionForNextPayment.setTransactionDate(LocalDate.now());
+//                        paymentTransactionForNextPayment.setPayment(savedNext);
+//                        paymentTransactionRepo.save(paymentTransactionForNextPayment);
+//
+//                        Debts newDebt = new Debts();
+//                        newDebt.setAmount(nextMonthDebt);
+//                        newDebt.setStudent(user);
+//                        debtsRepo.save(newDebt);
+//                    }
+//
+//                } else if (paidAmount.equals(debt.getAmount())) {
+//
+//                    debtsRepo.delete(debt);
+//
+//                    Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user, PaymentStatus.PENDING);
+//
+//                    if (payment != null) {
+//                        payment.setPaidAmount(payment.getPaidAmount() + paidAmount);
+//                        payment.setPaymentStatus(PaymentStatus.PAID);
+//                        Payment saved = paymentRepo.save(payment);
+//
+//                        PaymentTransaction monthPaymentTransaction = new PaymentTransaction();
+//                        monthPaymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
+//                        monthPaymentTransaction.setAmount(paidAmount);
+//                        monthPaymentTransaction.setPayment(saved);
+//                        monthPaymentTransaction.setTransactionDate(LocalDate.now());
+//                        paymentTransactionRepo.save(monthPaymentTransaction);
+//                    }
+//
+//                } else {
+//
+//                    Integer distinction = debt.getAmount() - paidAmount;
+//
+//                    if (!distinction.equals(0)) {
+//
+//                        debt.setAmount(distinction);
+//                        debtsRepo.save(debt);
+//
+//                        Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user, PaymentStatus.PENDING);
+//
+//                        if (payment != null) {
+//                            payment.setPaidAmount(payment.getPaidAmount() + paidAmount);
+//                            payment.setPaymentStatus(PaymentStatus.PENDING);
+//                            Payment saved = paymentRepo.save(payment);
+//
+//                            PaymentTransaction nextMonthPaymentTransaction = new PaymentTransaction();
+//                            nextMonthPaymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
+//                            nextMonthPaymentTransaction.setAmount(paidAmount);
+//                            nextMonthPaymentTransaction.setPayment(saved);
+//                            nextMonthPaymentTransaction.setTransactionDate(LocalDate.now());
+//                            paymentTransactionRepo.save(nextMonthPaymentTransaction);
+//                        }
+//                    }
+//                }
+//            }
+//
+//        } else {
+//
+//            if (paidAmount > realCourseAmount) {
+//
+//                int distinction = paidAmount - realCourseAmount;
+//
+//                Payment payment = new Payment();
+//                payment.setStudent(user);
+//                payment.setPaidAmount(realCourseAmount);
+//                payment.setDiscountAmount(discountAmount);
+//                payment.setPaymentStatus(PaymentStatus.PAID);
+//                payment.setDate(LocalDate.now());
+//                Payment saved = paymentRepo.save(payment);
+//
+//                PaymentTransaction paymentTransaction = new PaymentTransaction();
+//                paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
+//                paymentTransaction.setAmount(realCourseAmount);
+//                paymentTransaction.setTransactionDate(LocalDate.now());
+//                paymentTransaction.setPayment(saved);
+//                paymentTransactionRepo.save(paymentTransaction);
+//
+//                if (distinction > 0) {
+//
+//                    int needToPayForNextMonthAmount = realCourseAmount - distinction;
+//
+//                    Payment paymentNextMonth = new Payment();
+//                    paymentNextMonth.setStudent(user);
+//                    paymentNextMonth.setPaidAmount(distinction);
+//                    paymentNextMonth.setPaymentStatus(PaymentStatus.PENDING);
+//                    paymentNextMonth.setDiscountAmount(discountAmount);
+//                    paymentNextMonth.setDate(LocalDate.now().plusMonths(1));
+//                    Payment savedNext = paymentRepo.save(paymentNextMonth);
+//
+//                    PaymentTransaction paymentTransactionForNextPayment = new PaymentTransaction();
+//                    paymentTransactionForNextPayment.setPaymentMethod(PaymentMethod.valueOf(method));
+//                    paymentTransactionForNextPayment.setAmount(distinction);
+//                    paymentTransactionForNextPayment.setTransactionDate(LocalDate.now());
+//                    paymentTransactionForNextPayment.setPayment(savedNext);
+//                    paymentTransactionRepo.save(paymentTransactionForNextPayment);
+//
+//                    Debts debt = new Debts();
+//                    debt.setAmount(needToPayForNextMonthAmount);
+//                    debt.setStudent(user);
+//                    debtsRepo.save(debt);
+//                }
+//
+//            } else if (paidAmount.equals(realCourseAmount)) {
+//
+//                Payment payment1 = new Payment();
+//                payment1.setStudent(user);
+//                payment1.setPaidAmount(paidAmount);
+//                payment1.setPaymentStatus(PaymentStatus.PAID);
+//                payment1.setDate(LocalDate.now());
+//                Payment saved1 = paymentRepo.save(payment1);
+//
+//                PaymentTransaction paymentTrans = new PaymentTransaction();
+//                paymentTrans.setPaymentMethod(PaymentMethod.valueOf(method));
+//                paymentTrans.setAmount(paidAmount);
+//                paymentTrans.setTransactionDate(LocalDate.now());
+//                paymentTrans.setPayment(saved1);
+//                paymentTransactionRepo.save(paymentTrans);
+//
+//            } else {
+//
+//                int distinction = realCourseAmount - paidAmount;
+//
+//                Payment payment = new Payment();
+//                payment.setStudent(user);
+//                payment.setPaidAmount(paidAmount);
+//                payment.setPaymentStatus(PaymentStatus.PENDING);
+//                payment.setDate(LocalDate.now());
+//                Payment saved = paymentRepo.save(payment);
+//
+//                PaymentTransaction paymentTransaction = new PaymentTransaction();
+//                paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
+//                paymentTransaction.setAmount(paidAmount);
+//                paymentTransaction.setTransactionDate(LocalDate.now());
+//                paymentTransaction.setPayment(saved);
+//                paymentTransactionRepo.save(paymentTransaction);
+//
+//                Debts debt = new Debts();
+//                debt.setAmount(distinction);
+//                debt.setStudent(user);
+//                debtsRepo.save(debt);
+//            }
+//        }
+//    }
 
     @Transactional
     @Override
     public void addPayment(PaymentDto paymentDto) {
+
+
         User user = userRepo.findById(paymentDto.getStudentId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -44,46 +267,59 @@ public class PaymentServiceImpl implements PaymentService {
         Integer courseAmount = paymentCourseInfo.getCoursePaymentAmount();
         Integer paidAmount = paymentDto.getAmount();
 
+// ==============================
+//  DISCOUNT HISOBLASH
+// ==============================
+        Discount discount = discountRepo.findByStudent(user);
+        int discountAmount = (discount != null) ? discount.getQuantity() : 0;
+
+        int realCourseAmount = courseAmount - discountAmount;
+        if (realCourseAmount < 0) realCourseAmount = 0;
+
         String method = PaymentMethod.CARD.toString().equals(paymentDto.getPaymentMethod().toUpperCase())
                 ? PaymentMethod.CARD.toString()
                 : PaymentMethod.CASH.toString();
 
         List<Debts> debts = user.getDebts();
 
-        if(!debts.isEmpty()) {
-            for (Debts debt : debts) {
-                if (paidAmount > debt.getAmount()) {
-                    Integer distinction = paidAmount - debt.getAmount();
+        if (!debts.isEmpty()) {
 
-                    // Eski qarzni yopamiz
+            for (Debts debt : debts) {
+
+                if (paidAmount > debt.getAmount()) {
+
+                    Integer distinction = paidAmount - debt.getAmount();
                     debtsRepo.delete(debt);
 
+                    // Hozirgi oy payment
                     Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user, PaymentStatus.PENDING);
                     if (payment == null) {
                         payment = new Payment();
                         payment.setStudent(user);
                         payment.setDate(LocalDate.now());
                     }
-                    payment.setPaidAmount(courseAmount);
+                    payment.setPaidAmount(realCourseAmount);
                     payment.setPaymentStatus(PaymentStatus.PAID);
-                    Payment saved1 = paymentRepo.save(payment);
+                    payment.setDiscountAmount(discountAmount);
+                    Payment saved = paymentRepo.save(payment);
 
                     PaymentTransaction paymentTransaction = new PaymentTransaction();
                     paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
-                    Integer nextPay = paidAmount - debt.getAmount();
-                    paymentTransaction.setAmount(nextPay);
+                    paymentTransaction.setAmount(realCourseAmount);
                     paymentTransaction.setTransactionDate(LocalDate.now());
-                    paymentTransaction.setPayment(saved1);
+                    paymentTransaction.setPayment(saved);
                     paymentTransactionRepo.save(paymentTransaction);
 
-                    // Agar ortiqcha to‘lov bo‘lsa
+                    // Keyingi oy payment
                     if (distinction > 0) {
-                        int nextMonthDebt = courseAmount - distinction;
+
+                        int nextMonthDebt = realCourseAmount - distinction;
 
                         Payment paymentNextMonth = new Payment();
                         paymentNextMonth.setStudent(user);
                         paymentNextMonth.setPaidAmount(distinction);
                         paymentNextMonth.setPaymentStatus(PaymentStatus.PENDING);
+                        paymentNextMonth.setDiscountAmount(discountAmount); // Shu discount keyingi oyga ko‘chiriladi
                         paymentNextMonth.setDate(LocalDate.now().plusMonths(1));
                         Payment savedNext = paymentRepo.save(paymentNextMonth);
 
@@ -99,122 +335,118 @@ public class PaymentServiceImpl implements PaymentService {
                         newDebt.setStudent(user);
                         debtsRepo.save(newDebt);
                     }
-                } else if(paidAmount.equals(debt.getAmount())) {
-                        debtsRepo.delete(debt);
 
-                        Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user,PaymentStatus.PENDING);
+                } else if (paidAmount.equals(debt.getAmount())) {
 
-                        if(payment != null){
-                            payment.setPaidAmount(payment.getPaidAmount() + paidAmount);
-                            payment.setPaymentStatus(PaymentStatus.PAID);
-                            Payment saved = paymentRepo.save(payment);
+                    debtsRepo.delete(debt);
 
-                            PaymentTransaction monthPaymentTransaction = new PaymentTransaction();
-                            monthPaymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
-                            monthPaymentTransaction.setAmount(paidAmount);
-                            monthPaymentTransaction.setPayment(saved);
-                            monthPaymentTransaction.setTransactionDate(LocalDate.now());
-                            paymentTransactionRepo.save(monthPaymentTransaction);
+                    Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user, PaymentStatus.PENDING);
+                    if (payment != null) {
+                        payment.setPaidAmount(payment.getPaidAmount() + paidAmount);
+                        payment.setPaymentStatus(PaymentStatus.PAID);
+                        Payment saved = paymentRepo.save(payment);
 
-                        }
-                }else {
-
-                    Integer distinction = debt.getAmount() - paidAmount;
-
-                    if(!distinction.equals(0)){
-                        debt.setAmount(distinction);
-                        debtsRepo.save(debt);
-
-                        Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user,PaymentStatus.PENDING);
-
-                        if(payment != null){
-                            payment.setPaidAmount(payment.getPaidAmount() + paidAmount);
-                            payment.setPaymentStatus(PaymentStatus.PENDING);
-                            Payment saved = paymentRepo.save(payment);
-
-                            PaymentTransaction nextMonthPaymentTransaction = new PaymentTransaction();
-                            nextMonthPaymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
-                            nextMonthPaymentTransaction.setAmount(paidAmount);
-                            nextMonthPaymentTransaction.setPayment(saved);
-                            nextMonthPaymentTransaction.setTransactionDate(LocalDate.now());
-                            paymentTransactionRepo.save(nextMonthPaymentTransaction);
-
-
-
-                        }
-
+                        PaymentTransaction paymentTransaction = new PaymentTransaction();
+                        paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
+                        paymentTransaction.setAmount(paidAmount);
+                        paymentTransaction.setTransactionDate(LocalDate.now());
+                        paymentTransaction.setPayment(saved);
+                        paymentTransactionRepo.save(paymentTransaction);
                     }
 
+                } else {
 
+                    Integer distinction = debt.getAmount() - paidAmount;
+                    debt.setAmount(distinction);
+                    debtsRepo.save(debt);
+
+                    Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user, PaymentStatus.PENDING);
+                    if (payment != null) {
+                        payment.setPaidAmount(payment.getPaidAmount() + paidAmount);
+                        payment.setPaymentStatus(PaymentStatus.PENDING);
+                        Payment saved = paymentRepo.save(payment);
+
+                        PaymentTransaction paymentTransaction = new PaymentTransaction();
+                        paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
+                        paymentTransaction.setAmount(paidAmount);
+                        paymentTransaction.setPayment(saved);
+                        paymentTransaction.setTransactionDate(LocalDate.now());
+                        paymentTransactionRepo.save(paymentTransaction);
+                    }
                 }
             }
+
         } else {
 
-            if(paidAmount > courseAmount){
+            if (paidAmount > realCourseAmount) {
 
-                int distinction = paidAmount - courseAmount;
+                int distinction = paidAmount - realCourseAmount;
 
+                // Hozirgi oy payment
                 Payment payment = new Payment();
                 payment.setStudent(user);
-                payment.setPaidAmount(courseAmount);
+                payment.setPaidAmount(realCourseAmount);
                 payment.setPaymentStatus(PaymentStatus.PAID);
+                payment.setDiscountAmount(discountAmount);
                 payment.setDate(LocalDate.now());
                 Payment saved = paymentRepo.save(payment);
 
                 PaymentTransaction paymentTransaction = new PaymentTransaction();
                 paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
-                paymentTransaction.setAmount(courseAmount);
+                paymentTransaction.setAmount(realCourseAmount);
                 paymentTransaction.setTransactionDate(LocalDate.now());
                 paymentTransaction.setPayment(saved);
                 paymentTransactionRepo.save(paymentTransaction);
 
-                if( distinction > 0 ){
+                // Keyingi oy payment
+                int needToPayForNextMonthAmount = realCourseAmount - distinction;
 
-                    int needToPayForNextMonthAmount = courseAmount - distinction;
+                Payment paymentNextMonth = new Payment();
+                paymentNextMonth.setStudent(user);
+                paymentNextMonth.setPaidAmount(distinction);
+                paymentNextMonth.setPaymentStatus(PaymentStatus.PENDING);
+                paymentNextMonth.setDiscountAmount(discountAmount); // Shu discount keyingi oyga ko‘chiriladi
+                paymentNextMonth.setDate(LocalDate.now().plusMonths(1));
+                Payment savedNext = paymentRepo.save(paymentNextMonth);
 
-                    Payment paymentNextMonth = new Payment();
-                    paymentNextMonth.setStudent(user);
-                    paymentNextMonth.setPaidAmount(distinction);
-                    paymentNextMonth.setPaymentStatus(PaymentStatus.PENDING);
-                    paymentNextMonth.setDate(LocalDate.now().plusMonths(1));
-                    Payment savedNext = paymentRepo.save(paymentNextMonth);
+                PaymentTransaction paymentTransactionForNextPayment = new PaymentTransaction();
+                paymentTransactionForNextPayment.setPaymentMethod(PaymentMethod.valueOf(method));
+                paymentTransactionForNextPayment.setAmount(distinction);
+                paymentTransactionForNextPayment.setTransactionDate(LocalDate.now());
+                paymentTransactionForNextPayment.setPayment(savedNext);
+                paymentTransactionRepo.save(paymentTransactionForNextPayment);
 
-                    PaymentTransaction paymentTransactionForNextPayment = new PaymentTransaction();
-                    paymentTransactionForNextPayment.setPaymentMethod(PaymentMethod.valueOf(method));
-                    paymentTransactionForNextPayment.setAmount(distinction);
-                    paymentTransactionForNextPayment.setTransactionDate(LocalDate.now());
-                    paymentTransactionForNextPayment.setPayment(savedNext);
-                    paymentTransactionRepo.save(paymentTransactionForNextPayment);
+                Debts debt = new Debts();
+                debt.setAmount(needToPayForNextMonthAmount);
+                debt.setStudent(user);
+                debtsRepo.save(debt);
 
-                    Debts debt = new Debts();
-                    debt.setAmount(needToPayForNextMonthAmount);
-                    debt.setStudent(user);
-                    debtsRepo.save(debt);
-                }
+            } else if (paidAmount.equals(realCourseAmount)) {
 
-            }else if(paidAmount.equals(courseAmount)){
+                Payment payment = new Payment();
+                payment.setStudent(user);
+                payment.setPaidAmount(paidAmount);
+                payment.setPaymentStatus(PaymentStatus.PAID);
+                payment.setDiscountAmount(discountAmount);
+                payment.setDate(LocalDate.now());
+                Payment saved = paymentRepo.save(payment);
 
-                Payment payment1 = new Payment();
-                payment1.setStudent(user);
-                payment1.setPaidAmount(paidAmount);
-                payment1.setPaymentStatus(PaymentStatus.PAID);
-                payment1.setDate(LocalDate.now());
-                Payment saved1 = paymentRepo.save(payment1);
-
-                PaymentTransaction paymentTrans = new PaymentTransaction();
-                paymentTrans.setPaymentMethod(PaymentMethod.valueOf(method));
-                paymentTrans.setAmount(paidAmount);
-                paymentTrans.setTransactionDate(LocalDate.now());
-                paymentTrans.setPayment(saved1);
-                paymentTransactionRepo.save(paymentTrans);
+                PaymentTransaction paymentTransaction = new PaymentTransaction();
+                paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
+                paymentTransaction.setAmount(paidAmount);
+                paymentTransaction.setTransactionDate(LocalDate.now());
+                paymentTransaction.setPayment(saved);
+                paymentTransactionRepo.save(paymentTransaction);
 
             } else {
-                int distinction = courseAmount - paidAmount;
+
+                int distinction = realCourseAmount - paidAmount;
 
                 Payment payment = new Payment();
                 payment.setStudent(user);
                 payment.setPaidAmount(paidAmount);
                 payment.setPaymentStatus(PaymentStatus.PENDING);
+                payment.setDiscountAmount(discountAmount);
                 payment.setDate(LocalDate.now());
                 Payment saved = paymentRepo.save(payment);
 
@@ -229,12 +461,11 @@ public class PaymentServiceImpl implements PaymentService {
                 debt.setAmount(distinction);
                 debt.setStudent(user);
                 debtsRepo.save(debt);
-
             }
-
         }
 
     }
+
 
 
     @Override
@@ -300,6 +531,8 @@ public class PaymentServiceImpl implements PaymentService {
                         dto.setFullName(student.getFirstName() + " " + student.getLastName());
                         dto.setPaymentDate(payment.getDate());
                         dto.setPaidAmount(payment.getPaidAmount());
+                        dto.setDiscountAmount(payment.getDiscountAmount());
+
                         dto.setPaymentStatus(payment.getPaymentStatus().name());
 
                         // 🔹 Agar "all" bo‘lsa — hech qanday filter yo‘q, hammasi chiqadi
@@ -358,6 +591,7 @@ public class PaymentServiceImpl implements PaymentService {
             dto.setFullName(user.getFirstName() + " " + user.getLastName());
             dto.setPaymentDate(payment.getDate());
             dto.setPaidAmount(payment.getPaidAmount());
+            dto.setDiscountAmount(payment.getDiscountAmount());
             dto.setPaymentStatus(payment.getPaymentStatus().name());
 
             // 🔹 Transaction’larni filtrlaymiz

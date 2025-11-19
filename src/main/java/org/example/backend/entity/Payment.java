@@ -28,6 +28,7 @@ public class Payment {
     private PaymentStatus paymentStatus;
     @NotNull
     private Integer paidAmount;
+    private Integer discountAmount;
 
     private LocalDate date;
 
