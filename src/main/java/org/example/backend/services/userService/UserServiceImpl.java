@@ -197,9 +197,61 @@ public class UserServiceImpl implements UserService {
         return teacherNameDtos;
     }
 
+//    @Transactional
+//    @Override
+//    public List<StudentResDto> getStudentsWithData(String filialId, String groupId) {
+//        List<StudentResDto> students = new ArrayList<>();
+//
+//        Optional<Role> roleOpt = roleRepo.findByName("ROLE_STUDENT");
+//        if (roleOpt.isEmpty()) {
+//            System.out.println("ROLE_STUDENT not found!");
+//            return students;
+//        }
+//
+//        Role studentRole = roleOpt.get();
+//        List<User> roleStudents = userRepo.getByRoles(List.of(studentRole));
+//
+//        System.out.println("Found students count: " + roleStudents.size());
+//
+//        roleStudents.forEach(s -> {
+//            StudentResDto newStudent = new StudentResDto();
+//            newStudent.setId(s.getId());
+//            newStudent.setImgUrl(s.getImageUrl());
+//            newStudent.setFirstName(s.getFirstName());
+//            newStudent.setLastName(s.getLastName());
+//            newStudent.setUsername(s.getUsername());
+//            newStudent.setPhone(s.getPhone());
+//            newStudent.setParentPhone(s.getParentPhone());
+//
+//            List<Filial> filials = s.getFilials();
+//            if (filials != null) {
+//                Filial first = filials.getFirst();
+//                FilialNameDto filialNameDto = new FilialNameDto();
+//                filialNameDto.setId(first.getId());
+//                filialNameDto.setName(first.getName());
+//                newStudent.setFilialNameDto(filialNameDto);
+//            }
+//
+//            List<GroupsNamesDto> groups = new ArrayList<>();
+//            if (s.getStudentGroups() != null) {
+//                s.getStudentGroups().forEach(group -> {
+//                    GroupsNamesDto groupsNames = new GroupsNamesDto();
+//                    groupsNames.setId(group.getId());
+//                    groupsNames.setName(group.getName());
+//                    groups.add(groupsNames);
+//                });
+//            }
+//
+//            newStudent.setGroups(groups);
+//            students.add(newStudent);
+//        });
+//
+//        return students;
+//    }
+
     @Transactional
     @Override
-    public List<StudentResDto> getStudentsWithData() {
+    public List<StudentResDto> getStudentsWithData(String filialId, String groupId) {
         List<StudentResDto> students = new ArrayList<>();
 
         Optional<Role> roleOpt = roleRepo.findByName("ROLE_STUDENT");
@@ -213,7 +265,21 @@ public class UserServiceImpl implements UserService {
 
         System.out.println("Found students count: " + roleStudents.size());
 
-        roleStudents.forEach(s -> {
+        for (User s : roleStudents) {
+            // Filial bo'yicha filter
+            if (!"all".equals(filialId)) {
+                boolean hasFilial = s.getFilials().stream()
+                        .anyMatch(f -> f.getId().toString().equals(filialId));
+                if (!hasFilial) continue;
+            }
+
+            // Group bo'yicha filter
+            if (!"all".equals(groupId)) {
+                boolean hasGroup = s.getStudentGroups().stream()
+                        .anyMatch(g -> g.getId().toString().equals(groupId));
+                if (!hasGroup) continue;
+            }
+
             StudentResDto newStudent = new StudentResDto();
             newStudent.setId(s.getId());
             newStudent.setImgUrl(s.getImageUrl());
@@ -223,28 +289,29 @@ public class UserServiceImpl implements UserService {
             newStudent.setPhone(s.getPhone());
             newStudent.setParentPhone(s.getParentPhone());
 
-            List<Filial> filials = s.getFilials();
-            if (filials != null) {
-                Filial first = filials.getFirst();
+            // Filialni birinchi element sifatida olish
+            if (s.getFilials() != null && !s.getFilials().isEmpty()) {
+                Filial first = s.getFilials().get(0);
                 FilialNameDto filialNameDto = new FilialNameDto();
                 filialNameDto.setId(first.getId());
                 filialNameDto.setName(first.getName());
                 newStudent.setFilialNameDto(filialNameDto);
             }
 
+            // Guruhlar
             List<GroupsNamesDto> groups = new ArrayList<>();
             if (s.getStudentGroups() != null) {
-                s.getStudentGroups().forEach(group -> {
+                for (var group : s.getStudentGroups()) {
                     GroupsNamesDto groupsNames = new GroupsNamesDto();
                     groupsNames.setId(group.getId());
                     groupsNames.setName(group.getName());
                     groups.add(groupsNames);
-                });
+                }
             }
-
             newStudent.setGroups(groups);
+
             students.add(newStudent);
-        });
+        }
 
         return students;
     }

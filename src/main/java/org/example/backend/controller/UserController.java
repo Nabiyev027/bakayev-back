@@ -103,9 +103,12 @@ public class UserController {
     }
 
     @GetMapping("/students")
-    public ResponseEntity<?> getStudentsWithData(){
+    public ResponseEntity<?> getStudentsWithData(
+            @RequestParam(required = false, defaultValue = "all") String filialId,
+            @RequestParam(required = false, defaultValue = "all") String groupId
+    ) {
         try {
-            List<StudentResDto> students = userService.getStudentsWithData();
+            List<StudentResDto> students = userService.getStudentsWithData(filialId, groupId);
             return  ResponseEntity.ok(students);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());

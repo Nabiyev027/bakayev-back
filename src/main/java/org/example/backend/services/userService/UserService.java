@@ -33,7 +33,7 @@ public interface UserService {
 
     List<TeacherNameDto> getTeachers();
 
-    List<StudentResDto> getStudentsWithData();
+    List<StudentResDto> getStudentsWithData(String filialId, String groupId);
 
     List<TeacherResDto> getTeachersWithData();
 
