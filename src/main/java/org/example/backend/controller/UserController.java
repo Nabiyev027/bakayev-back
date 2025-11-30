@@ -1,10 +1,7 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.backend.dto.StudentDto;
-import org.example.backend.dto.TeacherDto;
-import org.example.backend.dto.UpdateUserDto;
-import org.example.backend.dto.UserReception;
+import org.example.backend.dto.*;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
@@ -45,9 +42,12 @@ public class UserController {
     }
 
     @GetMapping("/employer")
-    public ResponseEntity<?> getEmployer(){
+    public ResponseEntity<?> getEmployer(
+            @RequestParam(required = false, defaultValue = "all") String filialId,
+            @RequestParam(required = false, defaultValue = "all") String roleId
+            ){
         try {
-            List<EmployerResDto> employers = userService.getEmployers();
+            List<EmployerResDto> employers = userService.getEmployers(filialId, roleId);
             return ResponseEntity.ok(employers);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -92,10 +92,23 @@ public class UserController {
         }
     }
 
-    @GetMapping("/teacherWithData")
+    @GetMapping("/admins")
     public ResponseEntity<?> getTeachersWithData() {
         try {
-            List<TeacherResDto> teachers = userService.getTeachersWithData();
+            List<AdminResDto> admins = userService.getAdminsWithData();
+            return  ResponseEntity.ok(admins);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+    @GetMapping("/teachers")
+    public ResponseEntity<?> getTeachersWithData(
+            @RequestParam(required = false, defaultValue = "all") String filialId
+    ) {
+        try {
+            List<TeacherResDto> teachers = userService.getTeachersWithData(filialId);
             return  ResponseEntity.ok(teachers);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -180,6 +193,16 @@ public class UserController {
     public ResponseEntity<?> updateTeacher(@PathVariable UUID id, @RequestBody TeacherDto teacherDto){
         try {
             userService.updateTeacher(id,teacherDto);
+            return ResponseEntity.ok("Employer updated successfully");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/employer/{id}")
+    public ResponseEntity<?> updateEmployer(@PathVariable UUID id, @RequestBody EmployerDto employerDto){
+        try {
+            userService.updateEmployer(id,employerDto);
             return ResponseEntity.ok("User updated successfully");
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());

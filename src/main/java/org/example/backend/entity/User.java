@@ -24,7 +24,7 @@ public class User implements UserDetails {
     private String firstName;
     @NotBlank
     private String lastName;
-    @NotBlank
+    
     private String phone;
 
     private String parentPhone;

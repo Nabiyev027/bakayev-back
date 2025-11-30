@@ -179,17 +179,15 @@ public class LessonServiceImpl implements LessonService{
     public List<LessonStudentByGroupResDto> getStudentLessonsByGroupIdAndUserIdAndType(UUID studentId, UUID groupId, String type) {
         List<LessonStudentByGroupResDto> studentLessons = new ArrayList<>();
 
-        // Studentni olish
         User student = userRepo.findById(studentId).orElseThrow(() -> new RuntimeException("Student not found"));
 
-        // Guruhni olish
         Group group = student.getStudentGroups().stream()
                 .filter(g -> g.getId().equals(groupId))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Group not found for student"));
 
         LocalDate now = LocalDate.now();
-        LocalDate startDate = null;
+        LocalDate startDate;
 
         switch (type.toLowerCase()) {
             case "today":
@@ -205,19 +203,21 @@ public class LessonServiceImpl implements LessonService{
                 throw new IllegalArgumentException("Invalid type: " + type);
         }
 
-        // Lessonsni filterlash va DTOga o‘tkazish
         LocalDate finalStartDate = startDate;
         group.getLessons().stream()
-                .filter(lesson -> !lesson.getDate().isBefore(finalStartDate) && !lesson.getDate().isAfter(now))
+                .filter(lesson -> {
+                    LocalDate d = lesson.getDate();
+                    return d != null && !d.isBefore(finalStartDate) && !d.isAfter(now);
+                })
                 .forEach(lesson -> {
                     LessonStudentByGroupResDto lessonDto = new LessonStudentByGroupResDto();
                     lessonDto.setId(lesson.getId());
                     lessonDto.setDate(lesson.getDate());
-                    lessonDto.setWeekDay(lesson.getDate().getDayOfWeek().toString());
+                    lessonDto.setWeekDay(lesson.getDate() != null ? lesson.getDate().getDayOfWeek().toString() : null);
 
-                    // Studentning lessonMarkslarini olish
                     List<LessonStudentMarksResDto> marks = lesson.getLessonMarks().stream()
-                            .filter(mark -> mark.getStudent().getId().equals(studentId))
+                            .filter(mark -> mark.getStudent() != null && mark.getStudent().getId() != null
+                                    && mark.getStudent().getId().equals(studentId))
                             .map(mark -> {
                                 LessonStudentMarksResDto markDto = new LessonStudentMarksResDto();
                                 markDto.setId(mark.getId());
@@ -233,6 +233,7 @@ public class LessonServiceImpl implements LessonService{
 
         return studentLessons;
     }
+
 
 
 }

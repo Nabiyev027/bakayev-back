@@ -2,6 +2,7 @@ package org.example.backend.services.userService;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dto.EmployerDto;
 import org.example.backend.dto.LoginDto;
 import org.example.backend.dto.StudentDto;
 import org.example.backend.dto.TeacherDto;
@@ -197,58 +198,6 @@ public class UserServiceImpl implements UserService {
         return teacherNameDtos;
     }
 
-//    @Transactional
-//    @Override
-//    public List<StudentResDto> getStudentsWithData(String filialId, String groupId) {
-//        List<StudentResDto> students = new ArrayList<>();
-//
-//        Optional<Role> roleOpt = roleRepo.findByName("ROLE_STUDENT");
-//        if (roleOpt.isEmpty()) {
-//            System.out.println("ROLE_STUDENT not found!");
-//            return students;
-//        }
-//
-//        Role studentRole = roleOpt.get();
-//        List<User> roleStudents = userRepo.getByRoles(List.of(studentRole));
-//
-//        System.out.println("Found students count: " + roleStudents.size());
-//
-//        roleStudents.forEach(s -> {
-//            StudentResDto newStudent = new StudentResDto();
-//            newStudent.setId(s.getId());
-//            newStudent.setImgUrl(s.getImageUrl());
-//            newStudent.setFirstName(s.getFirstName());
-//            newStudent.setLastName(s.getLastName());
-//            newStudent.setUsername(s.getUsername());
-//            newStudent.setPhone(s.getPhone());
-//            newStudent.setParentPhone(s.getParentPhone());
-//
-//            List<Filial> filials = s.getFilials();
-//            if (filials != null) {
-//                Filial first = filials.getFirst();
-//                FilialNameDto filialNameDto = new FilialNameDto();
-//                filialNameDto.setId(first.getId());
-//                filialNameDto.setName(first.getName());
-//                newStudent.setFilialNameDto(filialNameDto);
-//            }
-//
-//            List<GroupsNamesDto> groups = new ArrayList<>();
-//            if (s.getStudentGroups() != null) {
-//                s.getStudentGroups().forEach(group -> {
-//                    GroupsNamesDto groupsNames = new GroupsNamesDto();
-//                    groupsNames.setId(group.getId());
-//                    groupsNames.setName(group.getName());
-//                    groups.add(groupsNames);
-//                });
-//            }
-//
-//            newStudent.setGroups(groups);
-//            students.add(newStudent);
-//        });
-//
-//        return students;
-//    }
-
     @Transactional
     @Override
     public List<StudentResDto> getStudentsWithData(String filialId, String groupId) {
@@ -316,59 +265,124 @@ public class UserServiceImpl implements UserService {
         return students;
     }
 
+//    @Transactional
+//    @Override
+//    public List<TeacherResDto> getTeachersWithData(String filialId) {
+//        List<TeacherResDto> teachers = new ArrayList<>();
+//
+//        Optional<Role> roleOpt = roleRepo.findByName("ROLE_TEACHER");
+//        if (roleOpt.isEmpty()) {
+//            System.out.println("ROLE_TEACHER not found!");
+//            return teachers;
+//        }
+//
+//        Role teacherRole = roleOpt.get();
+//        List<User> roleTeachers = userRepo.getByRoles(List.of(teacherRole));
+//
+//        System.out.println("Found students count: " + roleTeachers.size());
+//
+//        roleTeachers.forEach(t -> {
+//            TeacherResDto newTeacher = new TeacherResDto();
+//            newTeacher.setId(t.getId());
+//            newTeacher.setImgUrl(t.getImageUrl());
+//            newTeacher.setFirstName(t.getFirstName());
+//            newTeacher.setLastName(t.getLastName());
+//            newTeacher.setUsername(t.getUsername());
+//            newTeacher.setPhone(t.getPhone());
+//
+//            List<FilialNameDto> filials = new ArrayList<>();
+//            if (t.getFilials() != null) {
+//                t.getFilials().forEach(filial -> {
+//                    FilialNameDto filialNameDto = new FilialNameDto();
+//                    filialNameDto.setId(filial.getId());
+//                    filialNameDto.setName(filial.getName());
+//                    filials.add(filialNameDto);
+//                });
+//            }
+//
+//            newTeacher.setBranches(filials);
+//
+//            List<GroupsNamesDto> groups = new ArrayList<>();
+//            if (t.getTeacherGroups() != null) {
+//                t.getTeacherGroups().forEach(group -> {
+//                    GroupsNamesDto groupsNames = new GroupsNamesDto();
+//                    groupsNames.setId(group.getId());
+//                    groupsNames.setName(group.getName());
+//                    groups.add(groupsNames);
+//                });
+//            }
+//            newTeacher.setGroups(groups);
+//
+//            teachers.add(newTeacher);
+//        });
+//
+//        return teachers;
+//    }
+
     @Transactional
     @Override
-    public List<TeacherResDto> getTeachersWithData() {
+    public List<TeacherResDto> getTeachersWithData(String filialId) {
         List<TeacherResDto> teachers = new ArrayList<>();
 
-        Optional<Role> roleOpt = roleRepo.findByName("ROLE_TEACHER");
-        if (roleOpt.isEmpty()) {
-            System.out.println("ROLE_TEACHER not found!");
-            return teachers;
-        }
+        // ROLE_TEACHER topilmasa bo'sh qaytamiz
+        Role teacherRole = roleRepo.findByName("ROLE_TEACHER")
+                .orElse(null);
+        if (teacherRole == null) return teachers;
 
-        Role teacherRole = roleOpt.get();
+        // Teacher larni olish
         List<User> roleTeachers = userRepo.getByRoles(List.of(teacherRole));
 
-        System.out.println("Found students count: " + roleTeachers.size());
+        // Agar filialId = all bo'lsa filtrlamaymiz
+        if (!filialId.equals("all")) {
+            roleTeachers = roleTeachers.stream()
+                    .filter(t -> t.getFilials() != null &&
+                            t.getFilials().stream().anyMatch(f -> f.getId().toString().equals(filialId)))
+                    .toList();
+        }
 
-        roleTeachers.forEach(t -> {
-            TeacherResDto newTeacher = new TeacherResDto();
-            newTeacher.setId(t.getId());
-            newTeacher.setImgUrl(t.getImageUrl());
-            newTeacher.setFirstName(t.getFirstName());
-            newTeacher.setLastName(t.getLastName());
-            newTeacher.setUsername(t.getUsername());
-            newTeacher.setPhone(t.getPhone());
+        // Teacherlarni DTO ga o‘girish
+        for (User t : roleTeachers) {
+            TeacherResDto dto = new TeacherResDto();
+            dto.setId(t.getId());
+            dto.setImgUrl(t.getImageUrl());
+            dto.setFirstName(t.getFirstName());
+            dto.setLastName(t.getLastName());
+            dto.setUsername(t.getUsername());
+            dto.setPhone(t.getPhone());
 
+            // Filiallar
             List<FilialNameDto> filials = new ArrayList<>();
-            if (t.getFilials() != null) {
-                t.getFilials().forEach(filial -> {
+
+            if (t.getFilials() != null && !t.getFilials().isEmpty()) {
+                for (Filial f : t.getFilials()) {
                     FilialNameDto filialNameDto = new FilialNameDto();
-                    filialNameDto.setId(filial.getId());
-                    filialNameDto.setName(filial.getName());
+                    filialNameDto.setId(f.getId());
+                    filialNameDto.setName(f.getName());
                     filials.add(filialNameDto);
-                });
+                }
             }
 
-            newTeacher.setBranches(filials);
+            dto.setBranches(filials);
 
+            // Guruhlar
             List<GroupsNamesDto> groups = new ArrayList<>();
             if (t.getTeacherGroups() != null) {
-                t.getTeacherGroups().forEach(group -> {
+
+                for (var group : t.getTeacherGroups()) {
                     GroupsNamesDto groupsNames = new GroupsNamesDto();
                     groupsNames.setId(group.getId());
                     groupsNames.setName(group.getName());
                     groups.add(groupsNames);
-                });
+                }
             }
-            newTeacher.setGroups(groups);
+            dto.setGroups(groups);
 
-            teachers.add(newTeacher);
-        });
+            teachers.add(dto);
+        }
 
         return teachers;
     }
+
 
     @Override
     public List<Role> getEmpRoles() {
@@ -386,10 +400,33 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public List<EmployerResDto> getEmployers() {
+    public List<EmployerResDto> getEmployers(String filialId, String roleId) {
         List<EmployerResDto> employers = new ArrayList<>();
 
         userRepo.findAll().forEach(user -> {
+
+            // 1) ROLE_STUDENT bo'lsa – SKIP (qaytarmaymiz)
+            if (user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_STUDENT"))) {
+                return; // Continue
+            } else if (user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_ADMIN"))) {
+                return;
+            }
+
+            // 2) roleId = all emas bo'lsa filtr qilamiz
+            if (!roleId.equals("all")) {
+                boolean hasRole = user.getRoles().stream()
+                        .anyMatch(r -> r.getId().toString().equals(roleId));
+                if (!hasRole) return;
+            }
+
+            // 3) filialId = all emas bo'lsa filtr qilamiz
+            if (!filialId.equals("all")) {
+                boolean hasFilial = user.getFilials().stream()
+                        .anyMatch(f -> f.getId().toString().equals(filialId));
+                if (!hasFilial) return;
+            }
+
+            // DTO to'ldiramiz
             EmployerResDto employer = new EmployerResDto();
             employer.setId(user.getId());
             employer.setImgUrl(user.getImageUrl());
@@ -397,31 +434,26 @@ public class UserServiceImpl implements UserService {
             employer.setLastName(user.getLastName());
             employer.setUsername(user.getUsername());
             employer.setPhone(user.getPhone());
+            employer.setRoles(user.getRoles());
 
-            if (user.getRoles() != null) {
-                employer.setRoles(user.getRoles());
-            }
-
-            List<Filial> filials = user.getFilials();
-
-            if (filials != null) {
-                List<FilialNameDto> filialNameDtos = new ArrayList<>();
-                filials.forEach(filial -> {
-                    FilialNameDto filialNameDto = new FilialNameDto();
-                    filialNameDto.setId(filial.getId());
-                    filialNameDto.setName(filial.getName());
-                    filialNameDtos.add(filialNameDto);
+            // Filial name dto lar
+            List<FilialNameDto> filialNameDtos = new ArrayList<>();
+            if (user.getFilials() != null) {
+                user.getFilials().forEach(filial -> {
+                    FilialNameDto dto = new FilialNameDto();
+                    dto.setId(filial.getId());
+                    dto.setName(filial.getName());
+                    filialNameDtos.add(dto);
                 });
-
-                employer.setFilialNameDtos(filialNameDtos);
-
             }
+            employer.setFilialNameDtos(filialNameDtos);
 
             employers.add(employer);
         });
 
         return employers;
     }
+
 
     @Transactional
     @Override
@@ -492,6 +524,66 @@ public class UserServiceImpl implements UserService {
         // Oxirida user ni saqlaymiz
         userRepo.save(user);
     }
+
+    @Transactional
+    @Override
+    public void updateEmployer(UUID id, EmployerDto employerDto) {
+
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("Foydalanuvchi topilmadi: " + id));
+
+        // --- Basic Fields ---
+        if (employerDto.getFirstName() != null) user.setFirstName(employerDto.getFirstName());
+        if (employerDto.getLastName() != null) user.setLastName(employerDto.getLastName());
+        if (employerDto.getUsername() != null) user.setUsername(employerDto.getUsername());
+        if (employerDto.getPhone() != null) user.setPhone(employerDto.getPhone());
+
+
+        // ======================
+        //      FILIALS UPDATE
+        // ======================
+        if (employerDto.getFilialIds() != null) {
+
+            List<Filial> requestedFilials = employerDto.getFilialIds().stream()
+                    .map(fid -> filialRepo.findById(fid)
+                            .orElseThrow(() -> new EntityNotFoundException("Filial topilmadi: " + fid)))
+                    .collect(Collectors.toList());
+
+            // Eski filiallardan o'chirish
+            List<Filial> oldFilials = Optional.ofNullable(user.getFilials()).orElse(Collections.emptyList());
+            for (Filial old : new ArrayList<>(oldFilials)) {
+                if (old.getUsers() != null) {
+                    old.getUsers().remove(user);
+                }
+            }
+            
+            for (Filial f : requestedFilials) {
+                if (f.getUsers() == null) f.setUsers(new ArrayList<>());
+                if (!f.getUsers().contains(user)) f.getUsers().add(user);
+            }
+
+            user.setFilials(new ArrayList<>(requestedFilials));
+
+            List<Filial> toSave = Stream.concat(oldFilials.stream(), requestedFilials.stream())
+                    .distinct()
+                    .collect(Collectors.toList());
+            filialRepo.saveAll(toSave);
+        }
+
+
+        if (employerDto.getRoleIds() != null) {
+
+            List<Role> newRoles = employerDto.getRoleIds().stream()
+                    .map(rid -> roleRepo.findById(rid)
+                            .orElseThrow(() -> new EntityNotFoundException("Role topilmadi: " + rid)))
+                    .collect(Collectors.toList());
+
+            user.setRoles(new ArrayList<>(newRoles));
+        }
+
+        userRepo.save(user);
+    }
+
 
 
     @Override
@@ -567,6 +659,33 @@ public class UserServiceImpl implements UserService {
         return teachers;
     }
 
+    @Transactional
+    @Override
+    public List<AdminResDto> getAdminsWithData() {
+        List<AdminResDto> admins = new ArrayList<>();
+
+        // ROLE_TEACHER topilmasa bo'sh qaytamiz
+        Role adminRole = roleRepo.findByName("ROLE_ADMIN")
+                .orElse(null);
+        if (adminRole == null) return admins;
+
+        // Teacher larni olish
+        List<User> roleAdmin = userRepo.getByRoles(List.of(adminRole));
+
+        // Teacherlarni DTO ga o‘girish
+        for (User a : roleAdmin) {
+            AdminResDto dto = new AdminResDto();
+            dto.setId(a.getId());
+            dto.setImgUrl(a.getImageUrl());
+            dto.setFirstName(a.getFirstName());
+            dto.setLastName(a.getLastName());
+            dto.setUsername(a.getUsername());
+
+            admins.add(dto);
+        }
+
+        return admins;
+    }
 
 
     @Transactional

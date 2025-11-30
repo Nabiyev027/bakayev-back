@@ -1,10 +1,7 @@
 package org.example.backend.services.groupService;
 
 import org.example.backend.dto.GroupDto;
-import org.example.backend.dtoResponse.GroupsNamesDto;
-import org.example.backend.dtoResponse.GroupsResDto;
-import org.example.backend.dtoResponse.StudentProjection;
-import org.example.backend.dtoResponse.StudentResDto;
+import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.User;
 
 import java.util.List;
@@ -28,4 +25,7 @@ public interface GroupService {
     List<GroupsNamesDto> getGroupsByTeacher(UUID teacherId);
 
     List<GroupsNamesDto> getGroupsByStudent(UUID studentId);
+
+    List<FilialGroupNameResDto> getGroupsByFilialIds(List<String> filialIds);
+
 }

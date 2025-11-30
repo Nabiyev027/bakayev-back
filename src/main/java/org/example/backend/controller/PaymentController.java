@@ -2,6 +2,7 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.PaymentDto;
+import org.example.backend.dtoResponse.PaymentAmountResDto;
 import org.example.backend.dtoResponse.PaymentInfoResDto;
 import org.example.backend.dtoResponse.PaymentResDto;
 import org.example.backend.entity.PaymentCourseInfo;
@@ -69,6 +70,36 @@ public class PaymentController {
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @GetMapping("/student/{id}")
+    public ResponseEntity<?> getStudentPayments(@PathVariable UUID id){
+        try {
+            List<PaymentResDto> payments = paymentService.getPayments(id);
+            return ResponseEntity.ok(payments);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/coursePrice/{id}")
+    public ResponseEntity<?> getPaymentInfo(@PathVariable UUID id){
+        try {
+            Integer paymentInfo = paymentService.getPaymentInfo(id);
+            return ResponseEntity.ok(paymentInfo);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/paymentsAmount/{id}")
+    public ResponseEntity<?> getPaymentsAmount(@PathVariable String id){
+            try {
+                List<PaymentAmountResDto> paymentAmounts = paymentService.getPaymentAmounts(id);
+                return ResponseEntity.ok(paymentAmounts);
+            }catch (Exception e){
+                return ResponseEntity.badRequest().body(e.getMessage());
+            }
     }
 
 

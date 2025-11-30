@@ -39,4 +39,6 @@ public interface GroupRepo extends JpaRepository<Group, UUID> {
     """, nativeQuery = true)
     List<Group> getGroupsByStudent(@Param("studentId") UUID studentId);
 
+    List<Group> findByFilialIdIn(List<String> filialIds);
+
 }

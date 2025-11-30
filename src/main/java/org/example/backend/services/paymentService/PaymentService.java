@@ -1,6 +1,7 @@
 package org.example.backend.services.paymentService;
 
 import org.example.backend.dto.PaymentDto;
+import org.example.backend.dtoResponse.PaymentAmountResDto;
 import org.example.backend.dtoResponse.PaymentInfoResDto;
 import org.example.backend.dtoResponse.PaymentResDto;
 
@@ -17,4 +18,10 @@ public interface PaymentService {
     List<PaymentResDto> getPaymentsWithTransaction(UUID groupId, String dateFrom, String dateTo, String paymentMethod);
 
     List<PaymentResDto> getUserPaymentsWithTransactions(UUID studentId, String dateFrom, String dateTo, String paymentMethod);
+
+    List<PaymentResDto> getPayments(UUID id);
+
+    Integer getPaymentInfo(UUID id);
+
+    List<PaymentAmountResDto> getPaymentAmounts(String id);
 }

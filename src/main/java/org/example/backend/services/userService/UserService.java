@@ -1,5 +1,6 @@
 package org.example.backend.services.userService;
 
+import org.example.backend.dto.EmployerDto;
 import org.example.backend.dto.LoginDto;
 import org.example.backend.dto.StudentDto;
 import org.example.backend.dto.TeacherDto;
@@ -35,14 +36,15 @@ public interface UserService {
 
     List<StudentResDto> getStudentsWithData(String filialId, String groupId);
 
-    List<TeacherResDto> getTeachersWithData();
+    List<TeacherResDto> getTeachersWithData(String filialId);
 
     List<Role> getEmpRoles();
 
-    List<EmployerResDto> getEmployers();
+    List<EmployerResDto> getEmployers(String filialId, String roleId);
 
     void updateTeacher(UUID id, TeacherDto teacherDto);
 
+    void updateEmployer(UUID id, EmployerDto employerDto);
 
     List<StudentForMessageResDto> getStudentForMessage(UUID filialId, UUID groupId);
 
@@ -51,5 +53,8 @@ public interface UserService {
     void changeEmployerPassword(UUID userId, String newPassword);
 
     List<TeacherNameDto> getTeachersByFilial(UUID filialId);
+
+    List<AdminResDto> getAdminsWithData();
+
 }
 

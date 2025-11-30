@@ -2,16 +2,14 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.GroupDto;
-import org.example.backend.dtoResponse.GroupsNamesDto;
-import org.example.backend.dtoResponse.GroupsResDto;
-import org.example.backend.dtoResponse.StudentProjection;
-import org.example.backend.dtoResponse.StudentResDto;
+import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.User;
 import org.example.backend.services.groupService.GroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -71,6 +69,24 @@ public class GroupController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/getByFilials")
+    public ResponseEntity<?> getGroupsByFilials(
+            @RequestParam("ids") String ids
+    ) {
+        try {
+            // ids = "id1,id2,id3"
+            List<String> filialIds = Arrays.asList(ids.split(","));
+
+            List<FilialGroupNameResDto> groups = groupService.getGroupsByFilialIds(filialIds);
+
+            return ResponseEntity.ok(groups);
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 
     @GetMapping("/getNames")
     public ResponseEntity<?> getGroupsNames() {

@@ -217,6 +217,33 @@ public class GroupServiceImpl implements GroupService{
 
 
     @Override
+    public List<FilialGroupNameResDto> getGroupsByFilialIds(List<String> filialIds) {
+
+        // Agar hech narsaga kirmasa bo'sh qaytaramiz
+        if (filialIds == null || filialIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Repo orqali bazadan filiallarga tegishli gruppalarni olish
+        List<Group> groups = groupRepo.findByFilialIdIn(filialIds);
+
+        List<FilialGroupNameResDto> filialGroups = new ArrayList<>();
+
+        groups.forEach(g -> {
+            FilialGroupNameResDto dto = new FilialGroupNameResDto();
+            dto.setId(g.getId().toString());
+            dto.setName(g.getName());
+            dto.setFilialId(g.getFilial().getId().toString());
+            dto.setFilialName(g.getFilial().getName());
+            filialGroups.add(dto);
+        });
+
+        return filialGroups;
+    }
+
+
+
+    @Override
     @Transactional
     public void deleteGroup(UUID id) {
         Group group = groupRepo.findById(id)

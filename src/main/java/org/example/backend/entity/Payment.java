@@ -30,6 +30,7 @@ public class Payment {
     private Integer paidAmount;
     private Integer discountAmount;
 
+    @Column(name="date")
     private LocalDate date;
 
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)

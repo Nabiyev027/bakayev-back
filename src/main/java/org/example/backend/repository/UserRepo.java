@@ -54,4 +54,13 @@ public interface UserRepo extends JpaRepository<User, UUID> {
             """)
     Optional<User> findByIdWithGroups(@Param("id") UUID id);
 
+    @Transactional(readOnly = true)
+    @Query("""
+    SELECT u FROM users u
+    JOIN u.roles r
+    WHERE r.name = 'ROLE_STUDENT'
+      AND :filial MEMBER OF u.filials
+""")
+    List<User> findStudentsByFilial(@Param("filial") Filial filial);
+
 }

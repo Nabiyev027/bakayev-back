@@ -18,52 +18,58 @@ public class Loader implements CommandLineRunner {
     private final RoleRepo roleRepo;
     private final PasswordEncoder passwordEncoder;
     private final UserRepo userRepo;
+
     @Override
     public void run(String... args) throws Exception {
-        List<Role> all = roleRepo.findAll();
-        if(all.isEmpty()){
-            List<Role> roles=List.of(
-                    Role.builder().name("ROLE_ADMIN").build(),
-                    Role.builder().name("ROLE_RECEPTION").build(),
-                    Role.builder().name("ROLE_TEACHER").build(),
-                    Role.builder().name("ROLE_MAIN_RECEPTION").build(),
-                    Role.builder().name("ROLE_STUDENT").build()
-            );
-            roleRepo.saveAll(roles);
-            Role roleAdmin = roleRepo.findByName("ROLE_ADMIN").orElseThrow();
-            User userA=new User();
+        if (roleRepo.count() == 0) {
+
+            // --- 1) Rolelarni ketma-ket va to'g'ri shaklda yozamiz ---
+            Role adminRole = roleRepo.save(Role.builder().name("ROLE_ADMIN").build());
+            Role superAdminRole = roleRepo.save(Role.builder().name("ROLE_SUPER_ADMIN").build());
+            Role receptionRole = roleRepo.save(Role.builder().name("ROLE_RECEPTION").build());
+            Role teacherRole = roleRepo.save(Role.builder().name("ROLE_TEACHER").build());
+            Role mainReceptionRole = roleRepo.save(Role.builder().name("ROLE_MAIN_RECEPTION").build());
+            Role studentRole = roleRepo.save(Role.builder().name("ROLE_STUDENT").build());
+
+            // --- 2) Oddiy Admin yaratish ---
+            User userA = new User();
             userA.setFirstName("Bakayev");
             userA.setLastName("Sohib");
             userA.setPhone("+998914420031");
             userA.setUsername("bakayev");
             userA.setPassword(passwordEncoder.encode("123"));
-            userA.setRoles(List.of(roleAdmin));
+            userA.setRoles(List.of(adminRole));
             userRepo.save(userA);
 
-            Role roleReception = roleRepo.findByName("ROLE_RECEPTION").orElseThrow();
-            User userR =  new User();
+            // --- 3) SUPER ADMIN (eng yuqori foydalanuvchi) ---
+            User superAdmin = new User();
+            superAdmin.setFirstName("admin");
+            superAdmin.setLastName("admin");
+            superAdmin.setPhone("+998930646146");
+            superAdmin.setUsername("admin");
+            superAdmin.setPassword(passwordEncoder.encode("admin123"));
+            superAdmin.setRoles(List.of(superAdminRole, adminRole)); // ikkala rol
+            userRepo.save(superAdmin);
+
+            // --- 4) Reception foydalanuvchisi ---
+            User userR = new User();
             userR.setFirstName("Rajabov");
             userR.setLastName("Lazizbek");
             userR.setPhone("+998914420031");
             userR.setUsername("rajabov");
             userR.setPassword(passwordEncoder.encode("123"));
-            userR.setRoles(List.of(roleReception));
+            userR.setRoles(List.of(receptionRole));
             userRepo.save(userR);
 
-            Role roleTeacher = roleRepo.findByName("ROLE_TEACHER").orElseThrow();
-            User userT =  new User();
+            // --- 5) Teacher foydalanuvchisi ---
+            User userT = new User();
             userT.setFirstName("Umarov");
             userT.setLastName("Bekzod");
             userT.setPhone("+998914420031");
             userT.setUsername("umarov");
             userT.setPassword(passwordEncoder.encode("123"));
-            userT.setRoles(List.of(roleTeacher));
+            userT.setRoles(List.of(teacherRole));
             userRepo.save(userT);
-
-
         }
-
     }
-
-
 }
