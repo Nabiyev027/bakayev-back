@@ -2,6 +2,7 @@ package org.example.backend.services.filialService;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dtoResponse.FilialDto;
+import org.example.backend.dtoResponse.FilialLocationResDto;
 import org.example.backend.dtoResponse.RoomResDto;
 import org.example.backend.entity.Filial;
 import org.example.backend.entity.Room;
@@ -9,12 +10,16 @@ import org.example.backend.entity.User;
 import org.example.backend.repository.FilialRepo;
 import org.example.backend.repository.RoomRepo;
 import org.example.backend.repository.UserRepo;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +32,7 @@ public class FilialServiceImpl implements FilialService {
     private final FilialRepo filialRepo;
     private final RoomRepo roomRepo;
     private final UserRepo userRepo;
+
 
     @Override
     public List<FilialDto> getFilials() {
@@ -56,39 +62,63 @@ public class FilialServiceImpl implements FilialService {
         return filialDtos;
     }
 
+    @Value("${google.maps.api-key}")
+    private String apiKey;
+
+    public String generateEmbedLink(String location) {
+        try {
+            String encodedLocation = URLEncoder.encode(location, StandardCharsets.UTF_8.toString());
+            return "https://www.google.com/maps/embed/v1/place"
+                    + "?key=" + apiKey
+                    + "&q=" + encodedLocation
+                    + "&zoom=15"
+                    + "&maptype=roadmap";
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Location encoding error", e);
+        }
+    }
+
     @Override
     public void createFilial(String name, String description, String location, MultipartFile image) {
         Filial newFilial = new Filial();
         newFilial.setName(name);
         newFilial.setDescription(description);
-        newFilial.setLocation(location);
+
+        // location maydonini iframe link bilan saqlaymiz
+        newFilial.setLocation(generateEmbedLink(location));
+
         if (image != null && !image.isEmpty()) {
             String imgPath = createImage(image);
             newFilial.setImageUrl(imgPath);
         }
+
         filialRepo.save(newFilial);
     }
 
     @Override
     public void updateFilial(String id, String name, String description, String location, MultipartFile image) {
-        Optional<Filial> optionalFilial = filialRepo.findById(UUID.fromString(id));
-        if (optionalFilial.isEmpty()) {
-            throw new RuntimeException("Filial topilmadi: " + id);
-        }
 
-        Filial filial1 = optionalFilial.get();
-        filial1.setName(name);
-        filial1.setDescription(description);
-        filial1.setLocation(location);
+        Filial filial = filialRepo.findById(UUID.fromString(id))
+                .orElseThrow(() -> new RuntimeException("Filial topilmadi: " + id));
+
+        filial.setName(name);
+        filial.setDescription(description);
+
+        // location maydonini iframe link bilan yangilash
+        filial.setLocation(generateEmbedLink(location));
 
         if (image != null && !image.isEmpty()) {
-            deleteImageFile(filial1.getImageUrl());
+            if (filial.getImageUrl() != null) {
+                deleteImageFile(filial.getImageUrl());
+            }
             String imgPath = createImage(image);
-            filial1.setImageUrl(imgPath);
+            filial.setImageUrl(imgPath);
         }
 
-        filialRepo.save(filial1);
+        filialRepo.save(filial);
     }
+
+
 
     @Override
     public void deleteFilial(UUID id) {
@@ -119,6 +149,24 @@ public class FilialServiceImpl implements FilialService {
         filialDto.setName(filialF.getName());
         filialDto.setDescription(filialF.getDescription());
         return filialDto;
+    }
+
+    @Override
+    public List<FilialLocationResDto> getFilialsLocation() {
+        List<FilialLocationResDto> locations = new ArrayList<>();
+        List<Filial> all = filialRepo.findAll();
+
+        all.forEach(filial -> {
+            FilialLocationResDto locationResDto = new FilialLocationResDto();
+            locationResDto.setId(filial.getId());
+            locationResDto.setName(filial.getName());
+            locationResDto.setLocation(filial.getLocation());
+            locationResDto.setDescription(filial.getDescription());
+            locationResDto.setImageUrl(filial.getImageUrl());
+            locations.add(locationResDto);
+        });
+
+        return locations;
     }
 
 

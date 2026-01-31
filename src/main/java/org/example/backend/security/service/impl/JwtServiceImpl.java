@@ -1,12 +1,10 @@
 package org.example.backend.security.service.impl;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.security.service.JwtService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +27,24 @@ public class JwtServiceImpl implements JwtService {
 
     private final UserDetailsService userDetailsService;
 
-    private static final String SECRET_KEY = "nimabolgandahamfaqatvafaqatolgailoveprogramming";
+    @Value("${jwt.secret}")
+    private String secret;
+
+
+    @Override
+    public SecretKey signWithKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+
+    @Override
+    public Jws<Claims> extractJwt(String jwt) {
+        return Jwts.parserBuilder()
+                .setSigningKey(signWithKey())
+                .build()
+                .parseClaimsJws(jwt);  // parseSignedClaims o‘rniga
+    }
+
 
     @Override
     public String generateJwt(String id, Authentication authentication) {
@@ -41,11 +57,11 @@ public class JwtServiceImpl implements JwtService {
                 .collect(Collectors.toList());
 
         return Jwts.builder()
-                .subject(id)
+                .subject(authentication.getName())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .claim("authorities", authorities)
-                .signWith(signWithKey())
+                .signWith(signWithKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -55,25 +71,13 @@ public class JwtServiceImpl implements JwtService {
         Date expiryDate = new Date(now.getTime() + 1000L * 60 * 60 * 24 * 7); // 7 kun
 
         return Jwts.builder()
-                .subject(id)
+                .subject(authentication.getName())
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(signWithKey())
+                .signWith(signWithKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    @Override
-    public SecretKey signWithKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
-    }
-
-    @Override
-    public Jws<Claims> extractJwt(String jwt) {
-        return Jwts.parser()
-                .verifyWith(signWithKey())
-                .build()
-                .parseSignedClaims(jwt);
-    }
 
     @Override
     public ResponseEntity<?> refreshToken(String refreshToken) {

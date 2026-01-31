@@ -15,4 +15,5 @@ public class GroupDto {
     private LocalTime startTime;
     private LocalTime endTime;
     private List<UUID> teacherIds;
+    private String dayType;
 }

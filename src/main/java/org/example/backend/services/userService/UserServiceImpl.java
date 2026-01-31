@@ -2,10 +2,9 @@ package org.example.backend.services.userService;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.example.backend.dto.EmployerDto;
-import org.example.backend.dto.LoginDto;
-import org.example.backend.dto.StudentDto;
-import org.example.backend.dto.TeacherDto;
+import org.example.backend.Enum.GroupStudentStatus;
+import org.example.backend.Enum.PaymentStatus;
+import org.example.backend.dto.*;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.*;
 import org.example.backend.repository.*;
@@ -22,6 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,120 +39,53 @@ public class UserServiceImpl implements UserService {
     private final GroupRepo groupRepo;
     private final DiscountRepo discountRepo;
     private final FilialRepo filialRepo;
+    private final GroupStudentRepo groupStudentRepo;
+    private final PaymentRepo paymentRepo;
+    private final TeacherSalaryRepo teacherSalaryRepo;
+    private final ReceptionSalaryRepo receptionSalaryRepo;
+    private final PaymentCourseInfoRepo paymentCourseInfoRepo;
 
     @Override
     @Transactional
-    public Optional<User> register(String firstName, String lastName, String phone, String parentPhone,
-                                   String username, String password, String groupId, String role,
-                                   Integer discount, String discountTitle, MultipartFile image, String filialId) {
-        // 1. Role topamiz
-        Optional<Role> roleOpt = roleRepo.findByName(role);
-        if (roleOpt.isEmpty()) {
-            return Optional.empty(); // noto‘g‘ri role
+    public Optional<User> register(
+            String firstName,
+            String lastName,
+            String phone,
+            String parentPhone,
+            String username,
+            String password,
+            String groupId,
+            String role,
+            Integer discount,
+            Integer discountTime,
+            Integer teacherSalary,
+            Integer receptionSalary,
+            MultipartFile image,
+            String filialId
+    ) {
+
+        // 1️⃣ Username tekshirish
+        if (userRepo.existsByUsername(username)) {
+            throw new RuntimeException("Bu username allaqachon mavjud!");
         }
 
-        // 2. Group ID null yoki bo‘sh emasligini tekshiramiz
-        Optional<Group> groupOpt = Optional.empty();
-        if (groupId != null && !groupId.trim().isEmpty()) {
+        // 2️⃣ Role tekshirish
+        Role roleEntity = roleRepo.findByName(role)
+                .orElseThrow(() -> new RuntimeException("Role topilmadi"));
+
+        // 3️⃣ Group majburiy emas
+        Group group = null;
+        if (groupId != null && !groupId.isBlank()) {
             try {
                 UUID groupUUID = UUID.fromString(groupId);
-                groupOpt = groupRepo.findById(groupUUID);
-                if (groupOpt.isEmpty()) {
-                    return Optional.empty(); // noto‘g‘ri group id
-                }
-            } catch (Exception e) {
-                return Optional.empty(); // UUID format noto‘g‘ri
+                group = groupRepo.findById(groupUUID)
+                        .orElseThrow(() -> new RuntimeException("Group topilmadi"));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Group ID noto‘g‘ri formatda");
             }
         }
 
-        Role role1 = roleOpt.get();
-        Group group = groupOpt.orElse(null); // bo‘lishi ham mumkin, bo‘lmasligi ham
-
-        // 3. Yangi foydalanuvchini yaratamiz
-        User userNew = new User();
-        userNew.setFirstName(firstName);
-        userNew.setLastName(lastName);
-        userNew.setUsername(username);
-        userNew.setPhone(phone);
-        if(parentPhone != null && !parentPhone.trim().isEmpty()) {
-            userNew.setParentPhone(parentPhone);
-        }
-        userNew.setPassword(passwordEncoder.encode(password));
-        userNew.setRoles(List.of(role1));
-        Filial filial = filialRepo.findById(UUID.fromString(filialId)).get();
-        List<Filial> filialList = new ArrayList<>();
-        filialList.add(filial);
-        userNew.setFilials(filialList);
-
-        // 4. Agar rasm bo‘lsa, saqlaymiz
-        if (image != null && !image.isEmpty()) {
-            String imgPath = createImage(image);
-            userNew.setImageUrl(imgPath);
-        }
-
-        // 5. Userni bazaga saqlaymiz
-        User savedUser = userRepo.save(userNew);
-
-        // 6. Groupga qo‘shamiz (agar group mavjud bo‘lsa)
-        if (group != null) {
-            if ("ROLE_STUDENT".equals(role1.getName())) {
-                group.getStudents().add(savedUser);
-            } else if ("ROLE_TEACHER".equals(role1.getName())) {
-                group.getTeachers().add(savedUser);
-            }
-            groupRepo.save(group);
-        }
-
-
-            // 7. Agar bu student va discount > 0 bo‘lsa, chegirma yozamiz
-        if ("ROLE_STUDENT".equals(role1.getName()) && discount != null && discount > 0) {
-            Discount newDisc = new Discount();
-            newDisc.setQuantity(discount);
-            newDisc.setTitle(discountTitle);
-            newDisc.setStudent(savedUser);
-            discountRepo.save(newDisc);
-        }
-
-        return Optional.of(savedUser);
-    }
-
-
-
-    @Override
-    @Transactional
-    public Optional<User> registerForAdmin(String firstName, String lastName, String phone, String username,
-                                           String password, String filialId, String role, String groupId,
-                                           MultipartFile image) {
-        // 1. Role topamiz
-        Optional<Role> roleOpt = roleRepo.findByName(role);
-        if (roleOpt.isEmpty()) {
-            return Optional.empty(); // noto‘g‘ri role
-        }
-
-        // 2. Group ID null yoki bo‘sh emasligini tekshiramiz
-        Optional<Group> groupOpt = Optional.empty();
-        if (groupId != null && !groupId.trim().isEmpty()) {
-            try {
-                UUID groupUUID = UUID.fromString(groupId);
-                groupOpt = groupRepo.findById(groupUUID);
-                if (groupOpt.isEmpty()) {
-                    return Optional.empty(); // noto‘g‘ri group id
-                }
-            } catch (Exception e) {
-                return Optional.empty(); // UUID format noto‘g‘ri
-            }
-        }
-
-        Role roleEntity = roleOpt.get();
-        Group group = groupOpt.orElse(null);
-
-        // 3. Filialni tekshiramiz
-        Optional<Filial> filialOpt = filialRepo.findById(UUID.fromString(filialId));
-        if (filialOpt.isEmpty()) {
-            return Optional.empty(); // noto‘g‘ri filial
-        }
-
-        // 4. Foydalanuvchini yaratamiz
+        // 4️⃣ User yaratish
         User user = new User();
         user.setFirstName(firstName);
         user.setLastName(lastName);
@@ -158,28 +93,78 @@ public class UserServiceImpl implements UserService {
         user.setPhone(phone);
         user.setPassword(passwordEncoder.encode(password));
         user.setRoles(List.of(roleEntity));
-        List<Filial> filialList = new ArrayList<>();
-        Filial filialEntity = filialOpt.get();
-        filialList.add(filialEntity);
-        user.setFilials(filialList);
 
-        // 5. Rasm bo‘lsa saqlaymiz
-        if (image != null && !image.isEmpty()) {
-            String imagePath = createImage(image);
-            user.setImageUrl(imagePath);
+        if (parentPhone != null && !parentPhone.isBlank()) {
+            user.setParentPhone(parentPhone);
         }
 
-        // 6. Userni saqlaymiz
+        // 5️⃣ Filial biriktirish
+        Filial filial = filialRepo.findById(UUID.fromString(filialId))
+                .orElseThrow(() -> new RuntimeException("Filial topilmadi"));
+        user.setFilials(List.of(filial));
+
+        // 6️⃣ Image saqlash
+        if (image != null && !image.isEmpty()) {
+            user.setImageUrl(createImage(image));
+        }
+
+        // 7️⃣ Userni saqlash
         User savedUser = userRepo.save(user);
 
-        // 7. Groupga qo‘shamiz (agar mavjud bo‘lsa)
+        // 8️⃣ Group bo‘lsa — bog‘lash
         if (group != null) {
-            group.getTeachers().add(savedUser);
-            groupRepo.save(group);
+
+            if ("ROLE_STUDENT".equals(roleEntity.getName())) {
+                GroupStudent groupStudent = new GroupStudent();
+                groupStudent.setGroup(group);
+                groupStudent.setStudent(savedUser);
+                groupStudent.setStatus(GroupStudentStatus.ACTIVE);
+                groupStudentRepo.save(groupStudent);
+
+            } else if ("ROLE_TEACHER".equals(roleEntity.getName())) {
+                group.getTeachers().add(savedUser);
+                groupRepo.save(group);
+            }
+        }
+
+        // Teacher salary (group may be optional)
+        if ("ROLE_TEACHER".equals(roleEntity.getName())) {
+            TeacherSalary salary = new TeacherSalary();
+            salary.setTeacher(savedUser);
+            if (group != null) {
+                salary.setGroup(group); // agar group tanlangan bo‘lsa
+            }
+            salary.setSalaryDate(LocalDate.now());
+            teacherSalaryRepo.save(salary);
+        }
+
+
+        // 🔟 Reception salary
+        if ("ROLE_RECEPTION".equals(roleEntity.getName())
+                || "ROLE_MAIN_RECEPTION".equals(roleEntity.getName())) {
+            ReceptionSalary salary = new ReceptionSalary();
+            salary.setReceptionist(savedUser);
+            salary.setSalaryAmount(receptionSalary);
+            salary.setSalaryDate(LocalDate.now());
+            receptionSalaryRepo.save(salary);
+        }
+
+        // 1️⃣1️⃣ Student discount
+        if ("ROLE_STUDENT".equals(roleEntity.getName())
+                && discount != null && discount > 0
+                && discountTime != null && discountTime > 0) {
+
+            Discount newDiscount = new Discount();
+            newDiscount.setStudent(savedUser);
+            newDiscount.setQuantity(discount);
+            newDiscount.setEndDate(LocalDate.now().plusMonths(discountTime));
+            discountRepo.save(newDiscount);
         }
 
         return Optional.of(savedUser);
     }
+
+
 
     @Override
     public List<TeacherNameDto> getTeachers() {
@@ -188,7 +173,11 @@ public class UserServiceImpl implements UserService {
 
         List<User> roleTeachers = userRepo.getByRoles(roles);
         List<TeacherNameDto> teacherNameDtos = new ArrayList<>();
+
         roleTeachers.forEach(teacher -> {
+            // 🔹 STATUS = true bo‘lmaganlarni o'tkazib yuboramiz
+            if (!teacher.isStatus()) return;
+
             TeacherNameDto teacherNameDto = new TeacherNameDto();
             teacherNameDto.setId(teacher.getId());
             teacherNameDto.setName(teacher.getFirstName() + " " + teacher.getLastName());
@@ -197,6 +186,7 @@ public class UserServiceImpl implements UserService {
 
         return teacherNameDtos;
     }
+
 
     @Transactional
     @Override
@@ -224,10 +214,11 @@ public class UserServiceImpl implements UserService {
 
             // Group bo'yicha filter
             if (!"all".equals(groupId)) {
-                boolean hasGroup = s.getStudentGroups().stream()
-                        .anyMatch(g -> g.getId().toString().equals(groupId));
+                boolean hasGroup = s.getGroupStudents().stream()
+                        .anyMatch(gs -> gs.getGroup().getId().toString().equals(groupId));
                 if (!hasGroup) continue;
             }
+
 
             StudentResDto newStudent = new StudentResDto();
             newStudent.setId(s.getId());
@@ -249,14 +240,15 @@ public class UserServiceImpl implements UserService {
 
             // Guruhlar
             List<GroupsNamesDto> groups = new ArrayList<>();
-            if (s.getStudentGroups() != null) {
-                for (var group : s.getStudentGroups()) {
+            if (s.getGroupStudents() != null) {
+                for (var groupStudent : s.getGroupStudents()) {
                     GroupsNamesDto groupsNames = new GroupsNamesDto();
-                    groupsNames.setId(group.getId());
-                    groupsNames.setName(group.getName());
+                    groupsNames.setId(groupStudent.getGroup().getId());
+                    groupsNames.setName(groupStudent.getGroup().getName());
                     groups.add(groupsNames);
                 }
             }
+
             newStudent.setGroups(groups);
 
             students.add(newStudent);
@@ -391,7 +383,7 @@ public class UserServiceImpl implements UserService {
             String roleName = role.getName();
             if (roleName.equals("ROLE_RECEPTION") ||
                     roleName.equals("ROLE_TEACHER") ||
-                    roleName.equals("ROLE_MAIN_RECEPTION")) {
+                    roleName.equals("ROLE_MAIN_RECEPTION") || roleName.equals("ROLE_ADMIN")) {
                 roles.add(role);
             }
         });
@@ -405,12 +397,14 @@ public class UserServiceImpl implements UserService {
 
         userRepo.findAll().forEach(user -> {
 
-            // 1) ROLE_STUDENT bo'lsa – SKIP (qaytarmaymiz)
-            if (user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_STUDENT"))) {
-                return; // Continue
-            } else if (user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_ADMIN"))) {
-                return;
-            }
+            // 🔹 STATUS = true bo‘lmaganlarni o'tkazib yuboramiz
+            if (!user.isStatus()) return;
+
+            // 1) ROLE_STUDENT bo'lsa – SKIP
+            if (user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_STUDENT"))) return;
+
+            // 1.1) ROLE_SUPER_ADMIN bo'lsa – SKIP
+            if (user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_SUPER_ADMIN"))) return;
 
             // 2) roleId = all emas bo'lsa filtr qilamiz
             if (!roleId.equals("all")) {
@@ -585,28 +579,58 @@ public class UserServiceImpl implements UserService {
     }
 
 
-
+    @Transactional(readOnly = true)
     @Override
     public List<StudentForMessageResDto> getStudentForMessage(UUID filialId, UUID groupId) {
-        List <StudentForMessageResDto> studentForMessageResDtos = new ArrayList<>();
-        Filial filial = filialRepo.findById(filialId).get();
-        Group group = groupRepo.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found: " + groupId));
+        List<StudentForMessageResDto> studentForMessageResDtos = new ArrayList<>();
+
+        Filial filial = filialRepo.findById(filialId)
+                .orElseThrow(() -> new EntityNotFoundException("Filial not found: " + filialId));
+
+        Group group = groupRepo.findById(groupId)
+                .orElseThrow(() -> new EntityNotFoundException("Group not found: " + groupId));
 
         List<User> students = userRepo.findStudentsByFilialAndGroup(filial, group);
 
-        students.forEach(student -> {
-            StudentForMessageResDto studentForMessageResDto = new StudentForMessageResDto();
-            studentForMessageResDto.setId(student.getId());
-            studentForMessageResDto.setFirstName(student.getFirstName());
-            studentForMessageResDto.setLastName(student.getLastName());
-            studentForMessageResDto.setPhone(student.getPhone());
-            studentForMessageResDto.setParentPhone(student.getParentPhone());
-            studentForMessageResDtos.add(studentForMessageResDto);
-        });
+        int currentMonth = LocalDate.now().getMonthValue();
+        int currentYear = LocalDate.now().getYear();
+        LocalDate today = LocalDate.now();
+
+        for (User student : students) {
+            StudentForMessageResDto dto = new StudentForMessageResDto();
+            dto.setId(student.getId());
+            dto.setFirstName(student.getFirstName());
+            dto.setLastName(student.getLastName());
+            dto.setPhone(student.getPhone());
+            dto.setParentPhone(student.getParentPhone());
+
+            // 🔹 Debt hisoblash
+            int debtAmount = 0;
+            for (Debts d : student.getDebts()) {
+                LocalDate debtDate = d.getCreatedDate();
+                if (debtDate != null && (debtDate.isBefore(today) || debtDate.isEqual(today))) {
+                    debtAmount += d.getAmount();
+                }
+            }
+            dto.setDebt(debtAmount);
+
+            // 🔹 Payment status hisoblash (joriy oy uchun)
+            List<Payment> paymentsByStudent = paymentRepo.findPaymentsByStudent(student);
+            dto.setPaid(PaymentStatus.NOTPAID.toString());
+            for (Payment payment : paymentsByStudent) {
+                LocalDate payDate = payment.getDate();
+                if (payDate.getYear() == currentYear && payDate.getMonthValue() == currentMonth) {
+                    dto.setPaid(payment.getPaymentStatus().toString());
+                    break; // shu oy topildi, tekshirishni tugatamiz
+                }
+            }
+
+            studentForMessageResDtos.add(dto);
+        }
 
         return studentForMessageResDtos;
-
     }
+
 
     @Override
     public List<StudentNameResDto> getStudentsByGroup(UUID groupId) {
@@ -645,8 +669,11 @@ public class UserServiceImpl implements UserService {
         List<TeacherNameDto> teachers = new ArrayList<>();
 
         filial.getUsers().forEach(user -> {
+            // 🔹 STATUS = true bo‘lmaganlarni o'tkazib yuboramiz
+            if (!user.isStatus()) return;
+
             boolean isTeacher = user.getRoles().stream()
-                    .anyMatch(role -> "ROLE_TEACHER".equals(role.getName())); // to‘g‘rilangan joy!
+                    .anyMatch(role -> "ROLE_TEACHER".equals(role.getName()));
 
             if (isTeacher) {
                 TeacherNameDto dto = new TeacherNameDto();
@@ -658,6 +685,7 @@ public class UserServiceImpl implements UserService {
 
         return teachers;
     }
+
 
     @Transactional
     @Override
@@ -685,6 +713,266 @@ public class UserServiceImpl implements UserService {
         }
 
         return admins;
+    }
+
+    @Override
+    public void registerForSuperAdmin(String firstName, String lastName, String username, String password) {
+
+        if (userRepo.existsByUsername(username)) {
+            throw new RuntimeException("Bu username allaqachon mavjud!");
+        }
+
+        // 1. Role borligini tekshirish
+        Role roleAdmin = roleRepo.findByName("ROLE_ADMIN")
+                .orElseThrow(() -> new RuntimeException("Admin role not found"));
+
+        // 2. Username unikal bo‘lishi kerak
+        if (userRepo.existsByUsername(username)) {
+            throw new RuntimeException("Username already exists");
+        }
+
+        // 3. Password validatsiya
+        if (password == null || password.trim().isEmpty()) {
+            throw new RuntimeException("Password cannot be empty");
+        }
+
+        // 4. Foydalanuvchini yaratish
+        User user = new User();
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setRoles(List.of(roleAdmin));
+
+        userRepo.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void updateForSuperAdmin(UUID id, String firstName, String lastName, String username, String password) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + id));
+
+        // Username unique tekshirish (faqat o‘zgargan bo‘lsa)
+        if (!user.getUsername().equals(username) && userRepo.existsByUsername(username)) {
+            throw new RuntimeException("Username already exists");
+        }
+
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setUsername(username);
+
+        // Password optional, faqat bo‘sh bo‘lmasa yangilaymiz
+        if (password != null && !password.trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(password));
+        }
+
+        userRepo.save(user);
+    }
+
+
+    @Override
+    public UserInfoResDto getUserInfo(UUID id) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserInfoResDto dto = new UserInfoResDto();
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setUsername(user.getUsername());
+        dto.setImgUrl(user.getImageUrl());
+
+        return dto;
+    }
+
+    @Override
+    public void updateUserInfo(UUID id, String firstName, String lastName, String username, MultipartFile img) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 1️⃣ User ma'lumotlarini yangilash
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setUsername(username);
+
+        // 2️⃣ Agar yangi rasm yuborilgan bo‘lsa
+        if (img != null && !img.isEmpty()) {
+            String newImgUrl;
+            if (user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
+                // Eski rasmni o‘chirish va yangi rasmni yaratish
+                newImgUrl = replaceImage(user.getImageUrl(), img);
+            } else {
+                // Yangi rasm yaratish
+                newImgUrl = createImage(img);
+            }
+            user.setImageUrl(newImgUrl);
+        }
+
+        // 3️⃣ Saqlash
+        userRepo.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<StudentInfoResDto> getStudentInfos(UUID groupId) {
+
+        List<StudentInfoResDto> infos = new ArrayList<>();
+
+        // GroupStudent dan status bilan birga olish
+        List<GroupStudent> groupStudents = groupStudentRepo.findByGroup(groupId);
+
+        for (GroupStudent gs : groupStudents) {
+
+            User student = gs.getStudent();
+
+            // 🔹 Faqat status = true bo'lgan userlarni olish
+            if (!student.isStatus()) continue;
+
+            StudentInfoResDto dto = new StudentInfoResDto();
+            dto.setId(student.getId());
+            dto.setName(student.getFirstName() + " " + student.getLastName());
+
+            List<Discount> discountsByStudent = discountRepo.getDiscountsByStudent(student);
+
+            discountsByStudent.forEach(discount -> {
+                if(discount.getStudent().getId().equals(student.getId())) {
+                    dto.setDiscount(discount.getQuantity());
+                    dto.setEndDate(discount.getEndDate().toString());
+                }
+            });
+
+            dto.setStatus(gs.getStatus().name());
+
+            List<Payment> paymentsByStudent = paymentRepo.findPaymentsByStudent(student);
+
+            dto.setPaymentStatus(PaymentStatus.NOTPAID.toString());
+
+            int currentMonth = LocalDate.now().getMonthValue();
+            int currentYear = LocalDate.now().getYear();
+
+            for (Payment payment : paymentsByStudent) {
+                LocalDate payDate = payment.getDate(); // allaqachon LocalDate
+
+                if (payDate.getYear() == currentYear && payDate.getMonthValue() == currentMonth) {
+                    dto.setPaymentStatus(payment.getPaymentStatus().toString());
+                    break; // shu oy topildi, tekshirishni tugatamiz
+                }
+            }
+
+            int debtAmount = 0;
+            LocalDate today = LocalDate.now();
+            for (Debts d : student.getDebts()) {
+                LocalDate debtDate = d.getCreatedDate();
+                if (debtDate != null && (debtDate.isBefore(today) || debtDate.isEqual(today))) {
+                    debtAmount += d.getAmount();
+                }
+            }
+
+            dto.setDebt(debtAmount);
+            infos.add(dto);
+        }
+
+        return infos;
+    }
+
+
+    @Transactional
+    @Override
+    public void updateStatus(UUID id, String status, UUID groupId) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Faqat kerakli groupStudentni topamiz
+        user.getGroupStudents().stream()
+                .filter(gs -> gs.getGroup().getId().equals(groupId))
+                .findFirst() // faqat bitta topamiz
+                .ifPresent(gs -> {
+                    gs.setStatus(GroupStudentStatus.valueOf(status)); // enumga mos kelishini tekshiring
+                    groupStudentRepo.save(gs); // faqat bitta save
+                });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DiscountResDto> getStudentDiscounts(UUID id) {
+
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<DiscountResDto> discounts = new ArrayList<>();
+
+        LocalDate today = LocalDate.now();
+
+        discountRepo.getDiscountsByStudent(user).forEach(discount -> {
+            DiscountResDto dto = new DiscountResDto();
+            dto.setId(discount.getId());
+            dto.setAmount(discount.getQuantity());
+            dto.setEndDate(discount.getEndDate().toString());
+            dto.setActive(discount.isActive());
+
+            discounts.add(dto);
+        });
+
+        return discounts;
+    }
+
+    @Override
+    @Transactional
+    public void addDiscount(UUID userId, DiscountDto discountDto) {
+
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        LocalDate today = LocalDate.now();
+
+        Discount disc = discountRepo.findTopByStudentAndActiveOrderByEndDateDesc(user, true);
+
+        if (disc != null) {
+            disc.setActive(false); // eski discountni yopish kerak
+            disc.setEndDate(today);
+            discountRepo.save(disc);
+        }
+
+        Discount newDiscount = new Discount();
+        newDiscount.setStudent(user);
+        newDiscount.setQuantity(discountDto.getAmount());
+        newDiscount.setActive(true);
+        LocalDate endDate = today.plusMonths(Long.parseLong(discountDto.getLimitMonth()));
+        newDiscount.setEndDate(endDate);
+
+        user.getDiscounts().add(newDiscount);
+
+        userRepo.save(user);
+    }
+
+
+
+    @Override
+    @Transactional
+    public void editDiscount(UUID discountId, DiscountDto discountDto) {
+        // Mavjud discountni topamiz
+        Discount discount = discountRepo.findById(discountId)
+                .orElseThrow(() -> new RuntimeException("Discount not found"));
+
+        // Chegirma miqdorini yangilash
+        discount.setQuantity(discountDto.getAmount());
+
+        // End date ni yangilash (hozirgi sanadan + limitMonth)
+        LocalDate today = LocalDate.now();
+        LocalDate endDate = today.plusMonths(Long.parseLong(discountDto.getLimitMonth()));
+        discount.setEndDate(endDate);
+
+        // Yangilangan chegirmani saqlash
+        discountRepo.save(discount);
+    }
+
+    @Transactional
+    @Override
+    public void deleteDiscount(UUID id) {
+        Discount discount = discountRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Discount not found"));
+
+        discountRepo.delete(discount);
     }
 
 
@@ -737,18 +1025,22 @@ public class UserServiceImpl implements UserService {
                             .orElseThrow(() -> new EntityNotFoundException("Group not found: " + gid)))
                     .toList();
 
-            // Avval eski bog'lanishni tozalash
-            for (Group old : user.getStudentGroups()) {
-                old.getStudents().remove(user);
+            // Eski guruhlarni olib tashlash
+            for (GroupStudent gs : user.getGroupStudents()) {
+                groupStudentRepo.delete(gs);  // DBdan ham o'chiramiz
             }
+            user.getGroupStudents().clear(); // xotirada ham tozalaymiz
 
-            // Yangi guruhlarga qo‘shish
+// Yangi guruhlarga qo‘shish
             for (Group g : requestedGroups) {
-                g.getStudents().add(user);
-            }
+                GroupStudent gs = new GroupStudent();
+                gs.setGroup(g);
+                gs.setStudent(user);
+                gs.setStatus(GroupStudentStatus.ACTIVE);
+                groupStudentRepo.save(gs);
 
-            // Faqat xotirada sinxron bo‘lishi uchun
-            user.setStudentGroups(new ArrayList<>(requestedGroups));
+                user.getGroupStudents().add(gs); // xotirada sinxronlash uchun
+            }
 
             // E’tibor: O‘zgargan guruhlarni saqlab qo‘yamiz
             groupRepo.saveAll(requestedGroups);
@@ -773,9 +1065,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Map<?, ?> login(LoginDto loginDto){
-        User user = userRepo.findByUsername(loginDto.getUsername()).orElseThrow();
-        UUID id = user.getId();
+    public Map<String, String> login(LoginDto loginDto) {
+        // 1️⃣ Foydalanuvchini username orqali olish
+        User user = userRepo.findByUsername(loginDto.getUsername())
+                .orElseThrow(() -> new RuntimeException("Foydalanuvchi topilmadi"));
+
+        // 2️⃣ STATUS = true bo‘lmasa loginni rad etish
+        if (!user.isStatus()) {
+            throw new RuntimeException("Foydalanuvchi faol emas");
+        }
+
+        // 3️⃣ Authentication
         Authentication authenticate = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginDto.getUsername(),
@@ -783,62 +1083,28 @@ public class UserServiceImpl implements UserService {
                 )
         );
 
-        String jwt = jwtService.generateJwt(id.toString(),authenticate);
-        String refreshJwt = jwtService.generateRefreshJwt(id.toString(),authenticate);
+        // 4️⃣ JWT va Refresh token generatsiya qilish
+        String jwt = jwtService.generateJwt(user.getId().toString(), authenticate);
+        String refreshJwt = jwtService.generateRefreshJwt(user.getId().toString(), authenticate);
+
+        // 5️⃣ Token va rollarni qaytarish
         Map<String, String> tokens = new HashMap<>();
         tokens.put("access_token", jwt);
         tokens.put("refresh_token", refreshJwt);
         tokens.put("roles", user.getRoles().toString());
-        return tokens;
 
+        return tokens;
     }
 
     @Override
-    @Transactional
     public void deleteUser(UUID id) {
         User user = userRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
 
-        // 1. Remove user from groups where he is a student
-        for (Group group : user.getStudentGroups()) {
-            group.getStudents().remove(user);
+        if(user!=null) {
+            user.setStatus(false);
+            userRepo.save(user);
         }
-        user.getStudentGroups().clear();
-
-        // 2. Remove user from groups where he is a teacher
-        for (Group group : user.getTeacherGroups()) {
-            group.getTeachers().remove(user);
-        }
-        user.getTeacherGroups().clear();
-
-        // 3. Remove user from teachers (agar bu user student bo‘lsa)
-        for (User teacher : user.getTeachers()) {
-            teacher.getStudents().remove(user);
-        }
-        user.getTeachers().clear();
-
-        // 4. Remove user from students (agar bu user teacher bo‘lsa)
-        for (User student : user.getStudents()) {
-            student.getTeachers().remove(user);
-        }
-        user.getStudents().clear();
-
-        // 5. ReferenceStatus tozalash
-        if (user.getReferenceStatuses() != null) {
-            user.getReferenceStatuses().forEach(rs -> rs.setReceptionist(null));
-            user.getReferenceStatuses().clear();
-        }
-
-        // 6. Filialdan uzish (optional)
-        user.setFilials(null);
-
-        // 7. Roles tozalash (ixtiyoriy)
-        if (user.getRoles() != null) {
-            user.getRoles().clear();
-        }
-
-        // 8. Endi userni o‘chiramiz
-        userRepo.delete(user);
     }
 
     @Override
@@ -874,6 +1140,22 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Rasmni saqlab bo‘lmadi: " + e.getMessage(), e);
         }
 
+    }
+
+    private String replaceImage(String oldImgUrl, MultipartFile newImg) {
+        Optional.ofNullable(oldImgUrl)
+                .filter(url -> !url.isEmpty())
+                .map(url -> url.substring(url.lastIndexOf("/") + 1))
+                .map(fileName -> Paths.get(System.getProperty("user.dir"), "uploads", fileName))
+                .ifPresent(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException e) {
+                        System.err.println("Eski rasmni o‘chirishda xatolik: " + e.getMessage());
+                    }
+                });
+
+        return createImage(newImg);
     }
 
 

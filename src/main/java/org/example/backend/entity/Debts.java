@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity(name = "debts")
@@ -22,5 +23,7 @@ public class Debts {
 
     @NotNull
     private Integer amount;
+
+    private LocalDate createdDate;
 
 }

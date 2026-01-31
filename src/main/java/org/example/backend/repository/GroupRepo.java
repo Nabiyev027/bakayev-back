@@ -1,7 +1,9 @@
 package org.example.backend.repository;
 
+import org.example.backend.Enum.DayType;
 import org.example.backend.entity.Filial;
 import org.example.backend.entity.Group;
+import org.example.backend.entity.Room;
 import org.example.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -33,7 +35,7 @@ public interface GroupRepo extends JpaRepository<Group, UUID> {
     @Query(value = """
     SELECT g.*
     FROM groups g
-             JOIN group_students gs ON g.id = gs.group_id
+             JOIN group_student gs ON g.id = gs.group_id
              JOIN users s ON s.id = gs.student_id
     WHERE s.id = :studentId
     """, nativeQuery = true)
@@ -41,4 +43,7 @@ public interface GroupRepo extends JpaRepository<Group, UUID> {
 
     List<Group> findByFilialIdIn(List<String> filialIds);
 
+    List<Group> findByRoom(Room room);
+
+    List<Group> findAllByDayTypeAndRoom(DayType dayType, Room room);
 }

@@ -9,6 +9,7 @@ import org.example.backend.repository.UserRepo;
 import org.example.backend.services.userService.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +21,94 @@ import java.util.UUID;
 public class UserController {
     private final UserService userService;
     private final UserRepo userRepo;
+
+
+    @GetMapping("/discount/student/{id}")
+    public ResponseEntity<?> getStudentDiscounts(@PathVariable UUID id) {
+        try {
+            List<DiscountResDto> discountList = userService.getStudentDiscounts(id);
+            return ResponseEntity.ok(discountList);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/discount/add/{id}")
+    public ResponseEntity<?> addNewDiscount(@PathVariable UUID id, @RequestBody DiscountDto discountDto) {
+        try {
+            userService.addDiscount(id,discountDto);
+            return ResponseEntity.ok("Discount added successfully");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/discount/update/{id}")
+    public ResponseEntity<?> editStudentDiscount(@PathVariable UUID id, @RequestBody DiscountDto discountDto) {
+        try {
+            userService.editDiscount(id,discountDto);
+            return ResponseEntity.ok("Discount added successfully");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/discount/{id}")
+    public ResponseEntity<?> deleteDiscount(@PathVariable UUID id) {
+        try {
+            userService.deleteDiscount(id);
+            return ResponseEntity.ok("Discount deleted successfully");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+    @GetMapping("/getInfo/{id}")
+    public ResponseEntity<?> getUserInfo(@PathVariable UUID id) {
+        try {
+            UserInfoResDto user = userService.getUserInfo(id);
+            return ResponseEntity.ok(user);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/studentInfo/{id}")
+    public ResponseEntity<?> getStudent(@PathVariable UUID id) {
+        try {
+            List<StudentInfoResDto> infos = userService.getStudentInfos(id);
+            return ResponseEntity.ok(infos);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/updateStatus/{id}")
+    public ResponseEntity<?> updateStatus(@PathVariable UUID id, @RequestParam String status, @RequestParam UUID groupId) {
+        try {
+            userService.updateStatus(id,status,groupId);
+            return ResponseEntity.ok("User status updated");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+    @PutMapping("/updateInfo/{id}")
+    public ResponseEntity<?> updateUserInfo(@PathVariable UUID id,
+                                            @RequestParam("firstName") String firstName,
+                                            @RequestParam("lastName") String lastName,
+                                            @RequestParam("username") String username,
+                                            @RequestParam(value = "img", required = false) MultipartFile img
+                                            ) {
+        try {
+            userService.updateUserInfo(id,firstName,lastName,username, img);
+            return ResponseEntity.ok("Settings updated successfully");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
     @GetMapping("/getRoles")
     public ResponseEntity<?> getRoles() {
@@ -148,7 +237,7 @@ public class UserController {
         }
     }
 
-    @PostMapping("/settings/{id}")
+    @PutMapping("/settings/{id}")
     public ResponseEntity<?> changePassword(@PathVariable UUID id, @RequestParam String oldPassword, @RequestParam String newPassword){
         try {
             userService.changeLoginPassword(id, oldPassword, newPassword);

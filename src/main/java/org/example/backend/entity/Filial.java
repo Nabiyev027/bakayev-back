@@ -27,6 +27,7 @@ public class Filial {
     private String description;
 
     @NotBlank
+    @Column(length = 1000)
     private String location;
 
     @NotBlank

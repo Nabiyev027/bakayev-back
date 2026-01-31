@@ -192,7 +192,10 @@ public class ExamServiceImpl implements ExamService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
         // Student bo'lgan guruhlar
-        List<Group> studentGroups = user.getStudentGroups();
+        List<Group> studentGroups = user.getGroupStudents().stream()
+                .map(GroupStudent::getGroup)
+                .toList();
+
         if (studentGroups.isEmpty()) {
             return Collections.emptyList();
         }

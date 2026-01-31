@@ -24,7 +24,6 @@ public class LessonServiceImpl implements LessonService{
     private final UserRepo userRepo;
     private final LessonMarkRepo lessonMarkRepo;
     private final LessonTypeRepo lessonTypeRepo;
-    private final RoleRepo roleRepo;
 
     @Transactional
     @Override
@@ -181,10 +180,14 @@ public class LessonServiceImpl implements LessonService{
 
         User student = userRepo.findById(studentId).orElseThrow(() -> new RuntimeException("Student not found"));
 
-        Group group = student.getStudentGroups().stream()
-                .filter(g -> g.getId().equals(groupId))
+        // student – User object
+        GroupStudent groupStudent = student.getGroupStudents().stream()
+                .filter(gs -> gs.getGroup().getId().equals(groupId))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Group not found for student"));
+
+        Group group = groupStudent.getGroup();
+
 
         LocalDate now = LocalDate.now();
         LocalDate startDate;
@@ -233,6 +236,82 @@ public class LessonServiceImpl implements LessonService{
 
         return studentLessons;
     }
+
+    @Transactional
+    @Override
+    public List<LessonStudentResDto> getStudentLessonsByGroupIdAndType(UUID groupId, String type) {
+
+        // Natija ro‘yxati
+        List<LessonStudentResDto> response = new ArrayList<>();
+
+        // Guruhni olish
+        Group group = groupRepo.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        // Guruhdagi barcha studentlar (null filter bilan)
+        List<User> students = group.getGroupStudents().stream()
+                .map(GroupStudent::getStudent)
+                .filter(Objects::nonNull)
+                .toList();
+
+        LocalDate now = LocalDate.now();
+        LocalDate startDate;
+
+        // type bo‘yicha vaqt filtri
+        switch (type.toLowerCase()) {
+            case "today":
+                startDate = now;
+                break;
+            case "week":
+                startDate = now.minusDays(7);
+                break;
+            case "month":
+                startDate = now.minusMonths(1);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid type: " + type);
+        }
+
+        LocalDate finalStartDate = startDate;
+
+        // Har bir student uchun alohida DTO
+        for (User student : students) {
+
+            LessonStudentResDto studentDto = new LessonStudentResDto();
+            studentDto.setId(student.getId());
+            studentDto.setName(student.getFirstName() + " " + student.getLastName());
+
+            List<LessonStudentMarksResDto> markDtos = new ArrayList<>();
+
+            // Guruhdagi barcha darslar → vaqti bo‘yicha filter qilamiz
+            group.getLessons().stream()
+                    .filter(lesson -> {
+                        LocalDate d = lesson.getDate();
+                        return d != null && !d.isBefore(finalStartDate) && !d.isAfter(now);
+                    })
+                    .forEach(lesson -> {
+
+                        // Studentning ushbu darsdagi baholari
+                        lesson.getLessonMarks().stream()
+                                .filter(mark -> mark.getStudent() != null) // null-safe filter
+                                .filter(mark -> student.getId().equals(mark.getStudent().getId()))
+                                .forEach(mark -> {
+                                    LessonStudentMarksResDto dto = new LessonStudentMarksResDto();
+                                    dto.setId(mark.getId());
+                                    dto.setTypeName(mark.getTypeName());
+                                    dto.setMark(mark.getMark());
+                                    markDtos.add(dto);
+                                });
+
+                    });
+
+            studentDto.setLessonMarks(markDtos);
+            response.add(studentDto);
+        }
+
+        return response;
+    }
+
 
 
 

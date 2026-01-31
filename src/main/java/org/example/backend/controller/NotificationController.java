@@ -15,17 +15,14 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-    @PostMapping
-    public ResponseEntity<?> postMessage(@RequestBody NotificationDto notificationDto) {
+    @PostMapping("/send")
+    public ResponseEntity<?> sendMessage(@RequestBody NotificationDto notificationDto) {
         try {
-            notificationService.postMessage(notificationDto);
-            return ResponseEntity.ok("Message sent successfully");
-        }catch (Exception e) {
+            notificationService.sendMessageToStudentsOrParents(notificationDto);
+            return ResponseEntity.ok("Xabar muvaffaqiyatli yuborildi");
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
-
     }
-
-
 
 }

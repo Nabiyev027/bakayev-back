@@ -17,4 +17,5 @@ public class GroupsResDto {
     private Integer studentsNumber;
     private LocalTime startTime;
     private LocalTime endTime;
+    private String dayType;
 }

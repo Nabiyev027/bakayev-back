@@ -2,6 +2,7 @@ package org.example.backend.services.groupService;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.example.backend.Enum.DayType;
 import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.*;
@@ -10,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -21,7 +23,11 @@ public class GroupServiceImpl implements GroupService{
     private final UserRepo userRepo;
     private final FilialRepo filialRepo;
     private final RoleRepo roleRepo;
+    private final GroupStudentRepo groupStudentRepo;
+    private final AttendanceRepo attendanceRepo;
+    private final TeacherSalaryRepo teacherSalaryRepo;
 
+    @Transactional(readOnly = true)
     @Override
     public List<GroupsResDto> getGroupsWithData() {
         List<GroupsResDto> groupsResDtos = new ArrayList<>();
@@ -32,6 +38,7 @@ public class GroupServiceImpl implements GroupService{
             newGroup.setId(group.getId());
             newGroup.setName(group.getName());
             newGroup.setDegree(group.getDegree());
+            newGroup.setDayType(group.getDayType().toString());
             Room room = roomRepo.findById(group.getRoom().getId()).orElse(null);
             RoomResDto roomDto = new RoomResDto();
             roomDto.setId(room.getId());
@@ -42,7 +49,10 @@ public class GroupServiceImpl implements GroupService{
             newGroup.setStartTime(group.getStartTime());
             newGroup.setEndTime(group.getEndTime());
 
-            List<User> students = group.getStudents();
+            List<User> students = group.getGroupStudents().stream()
+                    .map(GroupStudent::getStudent)
+                    .toList();
+
             newGroup.setStudentsNumber(students.size());
             List<TeacherNameDto> teacherNameDtoList = new ArrayList<>();
             List<User> teachers = group.getTeachers();
@@ -74,6 +84,12 @@ public class GroupServiceImpl implements GroupService{
         newGroup.setStartTime(groupDto.getStartTime());
         newGroup.setEndTime(groupDto.getEndTime());
 
+        if(!groupDto.getDayType().equals("")) {
+            newGroup.setDayType(DayType.valueOf(groupDto.getDayType()));
+        }else {
+            newGroup.setDayType(DayType.ALL);
+        }
+
         // Room o‘rnatish
         Room room = roomRepo.findById(groupDto.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Room not found"));
@@ -91,7 +107,19 @@ public class GroupServiceImpl implements GroupService{
                 .collect(Collectors.toList());
         newGroup.setTeachers(teachers);
 
-        groupRepo.save(newGroup);
+        Group savedG = groupRepo.save(newGroup);
+
+
+        savedG.getTeachers().forEach(teacher -> {
+            TeacherSalary teacherSalary = new TeacherSalary();
+            teacherSalary.setGroup(savedG);
+            teacherSalary.setTeacher(teacher);
+            teacherSalary.setSalaryDate(LocalDate.now());
+            teacherSalary.setPercentage(0);
+            teacherSalary.setTotalAmount(0);
+            teacherSalaryRepo.save(teacherSalary);
+        });
+
     }
 
     @Override
@@ -124,6 +152,14 @@ public class GroupServiceImpl implements GroupService{
         group.setDegree(dto.getDegree());
         group.setStartTime(dto.getStartTime());
         group.setEndTime(dto.getEndTime());
+
+        if(!dto.getDayType().equals("")) {
+            group.setDayType(DayType.valueOf(dto.getDayType()));
+        }else {
+            group.setDayType(DayType.ALL);
+        }
+
+        group.setDayType(DayType.valueOf(dto.getDayType()));
 
         // --- 5. Teacherlar ro‘yxatini yig‘amiz
         List<UUID> teacherIds = Optional.ofNullable(dto.getTeacherIds()).orElse(List.of());
@@ -249,11 +285,23 @@ public class GroupServiceImpl implements GroupService{
         Group group = groupRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Group not found: " + id));
 
+        // Teacherlarni xotiradan tozalash
         group.getTeachers().clear();
-        group.getStudents().clear();
 
-        groupRepo.delete(group); // endi xotirjam o'chsa bo'ladi
+        attendanceRepo.deleteAttendancesByGroup(group);
+
+
+        // Studentlarni GroupStudent orqali o'chirish
+        if (group.getGroupStudents() != null) {
+            for (GroupStudent gs : group.getGroupStudents()) {
+                groupStudentRepo.delete(gs); // DBdan o'chirish
+            }
+            group.getGroupStudents().clear(); // xotirada ham tozalash
+        }
+
+        groupRepo.delete(group); // endi xavfsiz o'chadi
     }
+
 
     @Override
     @Transactional

@@ -20,7 +20,6 @@ import java.util.UUID;
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
-    private final GroupRepo groupRepo;
 
     @GetMapping("/{groupId}")
     public ResponseEntity<?> getTodayAttendanceGroup(@PathVariable UUID groupId) {

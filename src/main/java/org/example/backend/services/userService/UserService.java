@@ -1,9 +1,6 @@
 package org.example.backend.services.userService;
 
-import org.example.backend.dto.EmployerDto;
-import org.example.backend.dto.LoginDto;
-import org.example.backend.dto.StudentDto;
-import org.example.backend.dto.TeacherDto;
+import org.example.backend.dto.*;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
@@ -23,14 +20,17 @@ public interface UserService {
 
     void changeLoginPassword(UUID id,String oldPassword, String newPassword);
 
-    Optional<User> register(String firstName, String lastName, String phone, String parentPhone, String username, String password, String groupId, String role, Integer discount, String discountTitle, MultipartFile image, String filialId);
+    Optional<User> register(String firstName,
+                            String lastName, String phone, String parentPhone, String username,
+                            String password, String groupId, String role, Integer discount,
+                            Integer discountTime,Integer teacherSalary,Integer receptionSalary,
+                            MultipartFile image, String filialId);
 
     void updateStudent(UUID id, StudentDto studentDto);
 
 
     List<Role> getRoles();
 
-    Optional<User> registerForAdmin(String firstName, String lastName, String phone, String username, String password, String filialId, String role, String groupId, MultipartFile image);
 
     List<TeacherNameDto> getTeachers();
 
@@ -56,5 +56,24 @@ public interface UserService {
 
     List<AdminResDto> getAdminsWithData();
 
+    void registerForSuperAdmin(String firstName, String lastName, String username, String password);
+
+    void updateForSuperAdmin(UUID id, String firstName, String lastName, String username, String password);
+
+    UserInfoResDto getUserInfo(UUID id);
+
+    void updateUserInfo(UUID id, String firstName, String lastName, String username, MultipartFile img);
+
+    List<StudentInfoResDto> getStudentInfos(UUID id);
+
+    void updateStatus(UUID id, String status, UUID groupId);
+
+    List<DiscountResDto> getStudentDiscounts(UUID id);
+
+    void addDiscount(UUID id, DiscountDto discountDto);
+
+    void editDiscount(UUID id, DiscountDto discountDto);
+
+    void deleteDiscount(UUID id);
 }
 

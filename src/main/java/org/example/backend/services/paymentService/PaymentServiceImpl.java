@@ -32,236 +32,147 @@ public class PaymentServiceImpl implements PaymentService {
     private final DebtsRepo debtsRepo;
     private final GroupRepo groupRepo;
     private final DiscountRepo discountRepo;
-    private final FilialRepo filialRepo;
+    
 
     @Transactional
     @Override
     public void addPayment(PaymentDto paymentDto) {
 
-
         User user = userRepo.findById(paymentDto.getStudentId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        PaymentCourseInfo paymentCourseInfo = paymentCourseInfoRepo.findAll()
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Payment course Info not found"));
+        PaymentCourseInfo pci = paymentCourseInfoRepo.findAll()
+                .stream().findFirst()
+                .orElseThrow(() -> new RuntimeException("Course info not found"));
 
-        Integer courseAmount = paymentCourseInfo.getCoursePaymentAmount();
-        Integer paidAmount = paymentDto.getAmount();
+        int courseAmount = pci.getCoursePaymentAmount();
+        int remainingAmount = paymentDto.getAmount();
 
-// ==============================
-//  DISCOUNT HISOBLASH
-// ==============================
         Discount discount = discountRepo.findByStudent(user);
-        int discountAmount = (discount != null) ? discount.getQuantity() : 0;
 
-        int realCourseAmount = courseAmount - discountAmount;
-        if (realCourseAmount < 0) realCourseAmount = 0;
+        String method = paymentDto.getPaymentMethod().equalsIgnoreCase("CARD")
+                ? PaymentMethod.CARD.name()
+                : PaymentMethod.CASH.name();
 
-        String method = PaymentMethod.CARD.toString().equals(paymentDto.getPaymentMethod().toUpperCase())
-                ? PaymentMethod.CARD.toString()
-                : PaymentMethod.CASH.toString();
+        // ==========================
+        // OLD DEBTS NI TO‘LDIRISH
+        // ==========================
+        List<Debts> debts = debtsRepo.findByStudentOrderByCreatedDateAsc(user);
 
-        List<Debts> debts = user.getDebts();
+        for (Debts debt : debts) {
+            if (remainingAmount <= 0) break;
 
-        if (!debts.isEmpty()) {
+            int debtAmount = debt.getAmount();
+            LocalDate debtMonth = debt.getCreatedDate();
 
-            for (Debts debt : debts) {
+            Payment payment = paymentRepo.findByStudentAndDate(user, debtMonth)
+                    .orElseGet(() -> {
+                        Payment p = new Payment();
+                        p.setStudent(user);
+                        p.setDate(debtMonth);
+                        p.setPaidAmount(0);
+                        p.setDiscountAmount(0);
+                        p.setPaymentStatus(PaymentStatus.PENDING);
+                        return p;
+                    });
 
-                if (paidAmount > debt.getAmount()) {
+            int payAmount = Math.min(remainingAmount, debtAmount);
+            remainingAmount -= payAmount;
 
-                    Integer distinction = paidAmount - debt.getAmount();
-                    debtsRepo.delete(debt);
+            payment.setPaidAmount(payment.getPaidAmount() + payAmount);
 
-                    // Hozirgi oy payment
-                    Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user, PaymentStatus.PENDING);
-                    if (payment == null) {
-                        payment = new Payment();
-                        payment.setStudent(user);
-                        payment.setDate(LocalDate.now());
-                    }
-                    payment.setPaidAmount(realCourseAmount);
-                    payment.setPaymentStatus(PaymentStatus.PAID);
-                    payment.setDiscountAmount(discountAmount);
-                    Payment saved = paymentRepo.save(payment);
+            int paymentDiscount = payment.getDiscountAmount() != null
+                    ? payment.getDiscountAmount()
+                    : 0;
 
-                    PaymentTransaction paymentTransaction = new PaymentTransaction();
-                    paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
-                    paymentTransaction.setAmount(realCourseAmount);
-                    paymentTransaction.setTransactionDate(LocalDate.now());
-                    paymentTransaction.setPayment(saved);
-                    paymentTransactionRepo.save(paymentTransaction);
+            int realCourseAmount = Math.max(courseAmount - paymentDiscount, 0);
 
-                    // Keyingi oy payment
-                    if (distinction > 0) {
+            payment.setPaymentStatus(
+                    payment.getPaidAmount() >= realCourseAmount
+                            ? PaymentStatus.PAID
+                            : PaymentStatus.PENDING
+            );
 
-                        int nextMonthDebt = realCourseAmount - distinction;
+            paymentRepo.save(payment);
+            saveTransaction(payment, payAmount, method);
 
-                        Payment paymentNextMonth = new Payment();
-                        paymentNextMonth.setStudent(user);
-                        paymentNextMonth.setPaidAmount(distinction);
-                        paymentNextMonth.setPaymentStatus(PaymentStatus.PENDING);
-                        paymentNextMonth.setDiscountAmount(discountAmount); // Shu discount keyingi oyga ko‘chiriladi
-                        paymentNextMonth.setDate(LocalDate.now().plusMonths(1));
-                        Payment savedNext = paymentRepo.save(paymentNextMonth);
-
-                        PaymentTransaction paymentTransactionForNextPayment = new PaymentTransaction();
-                        paymentTransactionForNextPayment.setPaymentMethod(PaymentMethod.valueOf(method));
-                        paymentTransactionForNextPayment.setAmount(distinction);
-                        paymentTransactionForNextPayment.setTransactionDate(LocalDate.now());
-                        paymentTransactionForNextPayment.setPayment(savedNext);
-                        paymentTransactionRepo.save(paymentTransactionForNextPayment);
-
-                        Debts newDebt = new Debts();
-                        newDebt.setAmount(nextMonthDebt);
-                        newDebt.setStudent(user);
-                        debtsRepo.save(newDebt);
-                    }
-
-                } else if (paidAmount.equals(debt.getAmount())) {
-
-                    debtsRepo.delete(debt);
-
-                    Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user, PaymentStatus.PENDING);
-                    if (payment != null) {
-                        payment.setPaidAmount(payment.getPaidAmount() + paidAmount);
-                        payment.setPaymentStatus(PaymentStatus.PAID);
-                        Payment saved = paymentRepo.save(payment);
-
-                        PaymentTransaction paymentTransaction = new PaymentTransaction();
-                        paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
-                        paymentTransaction.setAmount(paidAmount);
-                        paymentTransaction.setTransactionDate(LocalDate.now());
-                        paymentTransaction.setPayment(saved);
-                        paymentTransactionRepo.save(paymentTransaction);
-                    }
-
-                } else {
-
-                    Integer distinction = debt.getAmount() - paidAmount;
-                    debt.setAmount(distinction);
-                    debtsRepo.save(debt);
-
-                    Payment payment = paymentRepo.getPaymentByStudentAndPaymentStatus(user, PaymentStatus.PENDING);
-                    if (payment != null) {
-                        payment.setPaidAmount(payment.getPaidAmount() + paidAmount);
-                        payment.setPaymentStatus(PaymentStatus.PENDING);
-                        Payment saved = paymentRepo.save(payment);
-
-                        PaymentTransaction paymentTransaction = new PaymentTransaction();
-                        paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
-                        paymentTransaction.setAmount(paidAmount);
-                        paymentTransaction.setPayment(saved);
-                        paymentTransaction.setTransactionDate(LocalDate.now());
-                        paymentTransactionRepo.save(paymentTransaction);
-                    }
-                }
-            }
-
-        } else {
-
-            if (paidAmount > realCourseAmount) {
-
-                int distinction = paidAmount - realCourseAmount;
-
-                // Hozirgi oy to‘lovi
-                Payment payment = new Payment();
-                payment.setStudent(user);
-                payment.setPaidAmount(realCourseAmount);
-                payment.setPaymentStatus(PaymentStatus.PAID);
-                payment.setDiscountAmount(discountAmount);
-                payment.setDate(LocalDate.now());
-                Payment saved = paymentRepo.save(payment);
-
-                PaymentTransaction paymentTransaction = new PaymentTransaction();
-                paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
-                paymentTransaction.setAmount(realCourseAmount);
-                paymentTransaction.setTransactionDate(LocalDate.now());
-                paymentTransaction.setPayment(saved);
-                paymentTransactionRepo.save(paymentTransaction);
-
-                // --- 📌 YANGI FORMULA ---
-                int nextMonthTotal = paymentCourseInfo.getCoursePaymentAmount(); // 600 000
-                int nextMonthDiscount = discountAmount; // agar barcha oyga qo‘llansa
-                int nextMonthReal = nextMonthTotal - nextMonthDiscount; // masalan 600 000
-
-                int nextMonthDebtAmount = nextMonthReal - distinction;
-                if (nextMonthDebtAmount < 0) nextMonthDebtAmount = 0;
-
-                // Keyingi oy payment
-                Payment paymentNextMonth = new Payment();
-                paymentNextMonth.setStudent(user);
-                paymentNextMonth.setPaidAmount(distinction); // oldindan to‘lov
-                paymentNextMonth.setPaymentStatus(
-                        nextMonthDebtAmount == 0 ? PaymentStatus.PAID : PaymentStatus.PENDING
-                );
-                paymentNextMonth.setDiscountAmount(nextMonthDiscount);
-                paymentNextMonth.setDate(LocalDate.now().plusMonths(1));
-                Payment savedNext = paymentRepo.save(paymentNextMonth);
-
-                PaymentTransaction ptNext = new PaymentTransaction();
-                ptNext.setPaymentMethod(PaymentMethod.valueOf(method));
-                ptNext.setAmount(distinction);
-                ptNext.setTransactionDate(LocalDate.now());
-                ptNext.setPayment(savedNext);
-                paymentTransactionRepo.save(ptNext);
-
-                if (nextMonthDebtAmount > 0) {
-                    Debts debt = new Debts();
-                    debt.setAmount(nextMonthDebtAmount);
-                    debt.setStudent(user);
-                    debtsRepo.save(debt);
-                }
-            }
-            else if(paidAmount < realCourseAmount) {
-                // paidAmount < realCourseAmount bo'lsa
-                int debtAmount = realCourseAmount - paidAmount;
-
-                Payment payment = new Payment();
-                payment.setStudent(user);
-                payment.setPaidAmount(paidAmount);
-                payment.setPaymentStatus(PaymentStatus.PENDING);
-                payment.setDiscountAmount(discountAmount);
-                payment.setDate(LocalDate.now());
-                Payment saved = paymentRepo.save(payment);
-
-// Transaction yozamiz
-                PaymentTransaction paymentTransaction = new PaymentTransaction();
-                paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
-                paymentTransaction.setAmount(paidAmount);
-                paymentTransaction.setTransactionDate(LocalDate.now());
-                paymentTransaction.setPayment(saved);
-                paymentTransactionRepo.save(paymentTransaction);
-
-// Qolgan summa — qarzdorlik
-                Debts debt = new Debts();
-                debt.setAmount(debtAmount);
-                debt.setStudent(user);
+            if (payAmount >= debtAmount) {
+                debtsRepo.delete(debt);
+            } else {
+                debt.setAmount(debtAmount - payAmount);
                 debtsRepo.save(debt);
-
-            }else {
-                Payment payment = new Payment();
-                payment.setStudent(user);
-                payment.setPaidAmount(realCourseAmount);
-                payment.setPaymentStatus(PaymentStatus.PAID);
-                payment.setDiscountAmount(discountAmount);
-                payment.setDate(LocalDate.now());
-                Payment saved = paymentRepo.save(payment);
-
-                PaymentTransaction paymentTransaction = new PaymentTransaction();
-                paymentTransaction.setPaymentMethod(PaymentMethod.valueOf(method));
-                paymentTransaction.setAmount(realCourseAmount);
-                paymentTransaction.setTransactionDate(LocalDate.now());
-                paymentTransaction.setPayment(saved);
-                paymentTransactionRepo.save(paymentTransaction);
-
             }
-
-
         }
 
+        // ==========================
+        // OXIRGI PAYMENT SANASINI ANIQLASH
+        // ==========================
+        LocalDate currentMonthDate = paymentRepo
+                .findTopByStudentOrderByDateDesc(user)
+                .map(p -> p.getDate().plusMonths(1))
+                .orElseGet(() -> {
+                    LocalDate now = LocalDate.now();
+                    return now.withDayOfMonth(
+                            Math.min(pci.getPaymentDay(), now.lengthOfMonth())
+                    );
+                });
+
+        // ==========================
+        // YANGI OYLAR UCHUN PAYMENT
+        // ==========================
+        while (remainingAmount > 0) {
+
+            int discountAmount = 0;
+            if (discount != null &&
+                    (discount.getEndDate() == null || !discount.getEndDate().isBefore(currentMonthDate))) {
+                discountAmount = discount.getQuantity();
+            }
+
+            int realCourseAmount = Math.max(courseAmount - discountAmount, 0);
+            int payThisMonth = Math.min(realCourseAmount, remainingAmount);
+
+            Payment payment = new Payment();
+            payment.setStudent(user);
+            payment.setDate(currentMonthDate);
+            payment.setPaidAmount(payThisMonth);
+            payment.setDiscountAmount(discountAmount);
+            payment.setPaymentStatus(
+                    payThisMonth >= realCourseAmount
+                            ? PaymentStatus.PAID
+                            : PaymentStatus.PENDING
+            );
+
+            paymentRepo.save(payment);
+            saveTransaction(payment, payThisMonth, method);
+
+            if (payThisMonth < realCourseAmount) {
+                Debts d = new Debts();
+                d.setStudent(user);
+                d.setAmount(realCourseAmount - payThisMonth);
+                d.setCreatedDate(currentMonthDate);
+                debtsRepo.save(d);
+            }
+
+            remainingAmount -= payThisMonth;
+
+            // 🔥 MUHIM: har doim oxirgi payment sanasidan keyingi oy
+            currentMonthDate = currentMonthDate.plusMonths(1);
+            currentMonthDate = currentMonthDate.withDayOfMonth(
+                    Math.min(pci.getPaymentDay(), currentMonthDate.lengthOfMonth())
+            );
+        }
     }
+
+    private void saveTransaction(Payment payment, int amount, String method) {
+        PaymentTransaction pt = new PaymentTransaction();
+        pt.setPayment(payment);
+        pt.setAmount(amount);
+        pt.setPaymentMethod(PaymentMethod.valueOf(method));
+        pt.setTransactionDate(LocalDate.now());
+        paymentTransactionRepo.save(pt);
+    }
+
+
 
     @Override
     public void addPaymentInfo(String day, Integer amount) {
@@ -311,46 +222,49 @@ public class PaymentServiceImpl implements PaymentService {
         LocalDate from = LocalDate.parse(dateFrom);
         LocalDate to = LocalDate.parse(dateTo);
 
-        group.getStudents().forEach(student -> {
-            List<Payment> paymentList = paymentRepo.findPaymentsByStudent(student);
+        // 🔹 GroupStudent orqali studentlarni olish
+        group.getGroupStudents().stream()
+                .map(GroupStudent::getStudent)
+                .forEach(student -> {
+                    List<Payment> paymentList = paymentRepo.findPaymentsByStudent(student);
 
-            paymentList.stream()
-                    // Sana oralig‘ida bo‘lgan paymentlarni olish
-                    .filter(p -> !p.getDate().isBefore(from) && !p.getDate().isAfter(to))
-                    .filter(p -> p.getPaymentTransactions().stream()
-                            .anyMatch(t -> paymentMethod == null
-                                    || paymentMethod.equalsIgnoreCase("all")
-                                    || t.getPaymentMethod().name().equalsIgnoreCase(paymentMethod)))
-                    .forEach(payment -> {
-                        PaymentResDto dto = new PaymentResDto();
-                        dto.setFullName(student.getFirstName() + " " + student.getLastName());
-                        dto.setPaymentDate(payment.getDate());
-                        dto.setPaidAmount(payment.getPaidAmount());
-                        dto.setDiscountAmount(payment.getDiscountAmount());
+                    paymentList.stream()
+                            // Sana oralig‘ida bo‘lgan paymentlarni olish
+                            .filter(p -> !p.getDate().isBefore(from) && !p.getDate().isAfter(to))
+                            .filter(p -> p.getPaymentTransactions().stream()
+                                    .anyMatch(t -> paymentMethod == null
+                                            || paymentMethod.equalsIgnoreCase("all")
+                                            || t.getPaymentMethod().name().equalsIgnoreCase(paymentMethod)))
+                            .forEach(payment -> {
+                                PaymentResDto dto = new PaymentResDto();
+                                dto.setFullName(student.getFirstName() + " " + student.getLastName());
+                                dto.setPaymentDate(payment.getDate());
+                                dto.setPaidAmount(payment.getPaidAmount());
+                                dto.setDiscountAmount(payment.getDiscountAmount());
 
-                        dto.setPaymentStatus(payment.getPaymentStatus().name());
+                                dto.setPaymentStatus(payment.getPaymentStatus().name());
 
-                        // 🔹 Agar "all" bo‘lsa — hech qanday filter yo‘q, hammasi chiqadi
-                        List<PaymentTransactionResDto> transactionDtos = payment.getPaymentTransactions().stream()
-                                .filter(t -> paymentMethod == null
-                                        || paymentMethod.equalsIgnoreCase("all")
-                                        || t.getPaymentMethod().name().equalsIgnoreCase(paymentMethod))
-                                .map(t -> {
-                                    PaymentTransactionResDto tr = new PaymentTransactionResDto();
-                                    tr.setPaymentDate(t.getTransactionDate());
-                                    tr.setPaidAmount(t.getAmount());
-                                    tr.setPaymentMethod(t.getPaymentMethod().name());
-                                    return tr;
-                                })
-                                .toList();
+                                List<PaymentTransactionResDto> transactionDtos = payment.getPaymentTransactions().stream()
+                                        .filter(t -> paymentMethod == null
+                                                || paymentMethod.equalsIgnoreCase("all")
+                                                || t.getPaymentMethod().name().equalsIgnoreCase(paymentMethod))
+                                        .map(t -> {
+                                            PaymentTransactionResDto tr = new PaymentTransactionResDto();
+                                            tr.setPaymentDate(t.getTransactionDate());
+                                            tr.setPaidAmount(t.getAmount());
+                                            tr.setPaymentMethod(t.getPaymentMethod().name());
+                                            return tr;
+                                        })
+                                        .toList();
 
-                        dto.setTransactions(transactionDtos);
-                        payments.add(dto);
-                    });
-        });
+                                dto.setTransactions(transactionDtos);
+                                payments.add(dto);
+                            });
+                });
 
         return payments;
     }
+
 
 
     @Transactional

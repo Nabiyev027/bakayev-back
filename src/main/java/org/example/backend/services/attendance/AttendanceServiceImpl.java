@@ -60,51 +60,75 @@ public class AttendanceServiceImpl implements AttendanceService {
     public List<AttendanceTodayGroupDto> getTodayAttendance(UUID groupId) {
         LocalDate today = LocalDate.now();
 
-        List<AttendanceTodayGroupDto> todayAttendance = new ArrayList<>();
-
         Group group = groupRepo.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
 
         List<Attendance> byGroupAndDate = attendanceRepo.findByGroupAndDate(group, today);
+
+        // Agar bugungi kun uchun Attendance yozuvlari bo‘lmasa, faqat active studentlar uchun yaratish
+        if (byGroupAndDate.isEmpty()) {
+            byGroupAndDate = group.getGroupStudents().stream()
+                    .map(gs -> gs.getStudent())
+                    .filter(student -> student != null && Boolean.TRUE.equals(student.isStatus())) // faqat status = true
+                    .map(student -> {
+                        Attendance record = new Attendance();
+                        record.setGroup(group);
+                        record.setStudent(student);
+                        record.setDate(today);
+                        record.setStatus("none");
+                        record.setCause(null);
+                        return attendanceRepo.save(record);
+                    })
+                    .toList();
+        }
+
+        List<AttendanceTodayGroupDto> todayAttendance = new ArrayList<>();
         byGroupAndDate.forEach(attendance -> {
-            AttendanceTodayGroupDto dto = new AttendanceTodayGroupDto();
-            User user = userRepo.findById(attendance.getStudent().getId()).get();
-            dto.setStudentName(user.getFirstName() + " " + user.getLastName());
-            dto.setPhone(user.getPhone());
-            dto.setStatus(attendance.getStatus());
-            dto.setCause(attendance.getCause());
-            todayAttendance.add(dto);
+            if (attendance.getStudent() != null) {
+                AttendanceTodayGroupDto dto = new AttendanceTodayGroupDto();
+                User user = attendance.getStudent();
+                dto.setStudentName(user.getFirstName() + " " + user.getLastName());
+                dto.setPhone(user.getPhone());
+                dto.setStatus(attendance.getStatus());
+                dto.setCause(attendance.getCause());
+                todayAttendance.add(dto);
+            }
         });
 
         return todayAttendance;
-
     }
 
     @Transactional
     @Override
     public List<AttendanceDailyResDto> getDailyAttendance(UUID groupId, LocalDate date) {
-        List<Attendance> records = attendanceRepo.findByGroup_IdAndDate(groupId, date);
 
-        // Agar hozircha hech narsa yozilmagan bo‘lsa, yangi yozuvlar yaratamiz
-        if (records.isEmpty()) {
+        List<Attendance> records =
+                attendanceRepo.findByGroup_IdAndDate(groupId, date);
+
+        // 🔥 FAQAT BUGUN UCHUN YARATILSIN
+        if (records.isEmpty() && date.equals(LocalDate.now())) {
+
             Group group = groupRepo.findById(groupId)
                     .orElseThrow(() -> new RuntimeException("Group not found"));
 
-            List<Attendance> newRecords = group.getStudents().stream().map(student -> {
-                Attendance record = new Attendance();
-                record.setGroup(group);
-                record.setStudent(student);
-                record.setDate(date);
-                record.setStatus("none");
-                record.setCause(null);
-                return attendanceRepo.save(record);
-            }).toList();
-
-            records = newRecords;
+            records = group.getGroupStudents().stream()
+                    .map(gs -> {
+                        Attendance record = new Attendance();
+                        record.setGroup(group);
+                        record.setStudent(gs.getStudent());
+                        record.setDate(date);
+                        record.setStatus("none");
+                        record.setCause(null);
+                        return record;
+                    })
+                    .map(attendanceRepo::save)
+                    .toList();
         }
 
+        // ❗ O‘tgan/kelasi kunlar bo‘lsa va yozuv bo‘lmasa → bo‘sh list qaytadi
         return mapToDto(records);
     }
+
 
 
     @Transactional
@@ -174,6 +198,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private List<AttendanceDailyResDto> mapToDto(List<Attendance> records) {
         // Sanaga qarab guruhlash
         Map<LocalDate, List<AttendanceResDto>> dailyMap = records.stream()
+                .filter(record -> record.getStudent() != null) // null bo‘lganlarni filterlash
                 .collect(Collectors.groupingBy(Attendance::getDate))
                 .entrySet().stream()
                 .collect(Collectors.toMap(
@@ -185,22 +210,24 @@ public class AttendanceServiceImpl implements AttendanceService {
                                         record.getStudent().getPhone(),
                                         record.getStatus(),
                                         record.getCause(),
-                                        "present".equals(record.getStatus()) ? 100 : 0  // kunlik foiz
+                                        "present".equals(record.getStatus()) ? 100 : 0
                                 ))
                                 .toList()
                 ));
 
-        // Talaba bo‘yicha umumiy foiz (haftalik yoki oylik)
+        // Talaba bo‘yicha umumiy foiz
         Map<UUID, List<Integer>> studentPercentMap = new HashMap<>();
         for (Attendance record : records) {
-            int percent = "present".equals(record.getStatus()) ? 100 : 0;
-            studentPercentMap.computeIfAbsent(record.getStudent().getId(), k -> new ArrayList<>()).add(percent);
+            if (record.getStudent() != null) {
+                int percent = "present".equals(record.getStatus()) ? 100 : 0;
+                studentPercentMap.computeIfAbsent(record.getStudent().getId(), k -> new ArrayList<>()).add(percent);
+            }
         }
 
         Map<UUID, Integer> studentOverallPercent = new HashMap<>();
         studentPercentMap.forEach((studentId, percents) -> {
             int sum = percents.stream().mapToInt(Integer::intValue).sum();
-            int avg = percents.isEmpty() ? 0 : sum / percents.size();  // o‘rtacha foiz
+            int avg = percents.isEmpty() ? 0 : sum / percents.size();
             studentOverallPercent.put(studentId, avg);
         });
 
@@ -210,7 +237,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                     LocalDate date = entry.getKey();
                     List<AttendanceResDto> list = entry.getValue().stream()
                             .map(dto -> {
-                                dto.setPercent(studentOverallPercent.get(dto.getStudentId())); // haftalik/oylik foiz
+                                dto.setPercent(studentOverallPercent.get(dto.getStudentId()));
                                 return dto;
                             }).toList();
                     return new AttendanceDailyResDto(date, list);
@@ -218,6 +245,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .sorted(Comparator.comparing(AttendanceDailyResDto::getDate))
                 .toList();
     }
+
 
 
 

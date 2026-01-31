@@ -101,7 +101,6 @@ public class GroupController {
     @PostMapping("/add")
     public ResponseEntity<?> postGroup(@RequestBody GroupDto groupDto) {
         try {
-            System.out.println(groupDto);
             groupService.createGroup(groupDto);
             return ResponseEntity.ok("Group created successfully");
         } catch (Exception e){

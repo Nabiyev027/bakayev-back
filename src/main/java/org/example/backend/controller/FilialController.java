@@ -2,6 +2,7 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dtoResponse.FilialDto;
+import org.example.backend.dtoResponse.FilialLocationResDto;
 import org.example.backend.services.filialService.FilialService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,17 @@ public class FilialController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/location")
+    public ResponseEntity<?> getFilialsLocation() {
+        try {
+            List<FilialLocationResDto> filials = filialService.getFilialsLocation();
+            return ResponseEntity.ok(filials);
+        }catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 
     @GetMapping("/getOne/{id}")
     public ResponseEntity<?> getFilials(@PathVariable UUID id) {

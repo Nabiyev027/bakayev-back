@@ -19,21 +19,26 @@ public class EskizAuth {
     }
 
     // Tokenni olish va yangilash
-    private static String getToken() throws IOException {
+    public static String getToken() throws IOException {
         if (Files.exists(Paths.get(TOKEN_FILE_PATH))) {
-            String[] lines = Files.readAllLines(Paths.get(TOKEN_FILE_PATH)).toArray(new String[0]);
+            try (BufferedReader br = new BufferedReader(new FileReader(TOKEN_FILE_PATH))) {
+                String savedToken = br.readLine(); // Token 1-qator
+                String dateLine = br.readLine();   // Sana 2-qator
 
-            if (lines.length == 2) {
-                String savedToken = lines[0];
-                LocalDateTime savedDate = LocalDateTime.parse(lines[1]);
+                if (savedToken != null && dateLine != null) {
+                    // Barcha bo‘sh joy, newline va carriage return belgilarni olib tashlash
+                    savedToken = savedToken.replaceAll("[\\r\\n\\s]+", "");
+                    LocalDateTime savedDate = LocalDateTime.parse(dateLine.trim());
 
-                if (Duration.between(savedDate, LocalDateTime.now()).toDays() < TOKEN_VALID_DAYS) {
-                    return savedToken;
+                    // Token muddati hali tugamagan bo‘lsa, mavjud tokenni qaytarish
+                    if (Duration.between(savedDate, LocalDateTime.now()).toDays() < TOKEN_VALID_DAYS) {
+                        return savedToken;
+                    }
                 }
             }
         }
 
-        // Token muddati tugagan bo‘lsa, yangisini olish
+        // Token muddati tugagan yoki fayl mavjud emas bo‘lsa, yangi token olish
         return getNewTokenAndSave();
     }
 
@@ -66,14 +71,13 @@ public class EskizAuth {
 
                 // Faylga yozish: token va vaqt
                 try (FileWriter writer = new FileWriter(TOKEN_FILE_PATH)) {
-                    writer.write(token + "\n" + LocalDateTime.now().toString());
+                    writer.write(token.replaceAll("[\\r\\n\\s]+", "") + "\n" + LocalDateTime.now());
                 }
 
-                return token;
+                return token.replaceAll("[\\r\\n\\s]+", ""); // return qilayotganda ham tozalash
             } else {
                 throw new IOException("Token olishda xatolik: " + response.code() + " - " + response.message());
             }
         }
     }
 }
-

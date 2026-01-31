@@ -5,7 +5,6 @@ import org.example.backend.dtoResponse.HeaderSectionDto;
 import org.example.backend.dtoResponse.HomeSectionResDto;
 import org.example.backend.services.headerService.HeaderService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 

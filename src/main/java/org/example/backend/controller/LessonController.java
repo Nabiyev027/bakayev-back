@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.StudentMarkDto;
 import org.example.backend.dtoResponse.LessonGroupResDto;
 import org.example.backend.dtoResponse.LessonStudentByGroupResDto;
+import org.example.backend.dtoResponse.LessonStudentResDto;
 import org.example.backend.services.lessonService.LessonService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +40,16 @@ public class LessonController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
 
+    }
+
+    @GetMapping("/studentMarks")
+    public ResponseEntity<?> getStudentLessonsByGroupAndUserId(@RequestParam UUID groupId, @RequestParam String type) {
+        try {
+            List<LessonStudentResDto> studentLessons = lessonService.getStudentLessonsByGroupIdAndType(groupId,type);
+            return ResponseEntity.ok(studentLessons);
+        }catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/changeTime/{groupId}")

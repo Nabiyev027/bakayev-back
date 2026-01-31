@@ -1,6 +1,5 @@
 package org.example.backend.controller;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dtoResponse.AboutSectionHomeResDto;
 import org.example.backend.dtoResponse.AboutSectionResDto;

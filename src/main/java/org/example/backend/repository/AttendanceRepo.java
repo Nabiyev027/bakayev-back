@@ -22,4 +22,6 @@ public interface AttendanceRepo extends JpaRepository<Attendance, UUID> {
 
     Attendance findByGroupAndStudentAndDate(Group group, User student, LocalDate today);
     List<Attendance> findByGroupAndDate(Group group, LocalDate today);
+
+    void deleteAttendancesByGroup(Group group);
 }

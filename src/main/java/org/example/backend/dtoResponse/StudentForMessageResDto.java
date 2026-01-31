@@ -12,6 +12,6 @@ public class StudentForMessageResDto {
     private String lastName;
     private String phone;
     private String parentPhone;
-    private Boolean paid;
-    private BigDecimal debt;
+    private String paid;
+    private Integer debt;
 }

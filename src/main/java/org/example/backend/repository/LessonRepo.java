@@ -30,11 +30,11 @@ public interface LessonRepo extends JpaRepository<Lesson, UUID> {
             lm.type_name,
             lm.mark
         FROM groups g
-        JOIN group_students sg ON sg.group_id = g.id
+        JOIN group_student sg ON sg.group_id = g.id
         JOIN users u ON u.id = sg.student_id
-        LEFT JOIN lessons l ON l.group_id = g.id 
+        LEFT JOIN lessons l ON l.group_id = g.id
             AND l.date = CURRENT_DATE
-        LEFT JOIN lesson_marks lm ON lm.lesson_id = l.id 
+        LEFT JOIN lesson_marks lm ON lm.lesson_id = l.id
             AND lm.student_id = u.id
         WHERE g.id = :groupId
         """,

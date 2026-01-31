@@ -1,6 +1,5 @@
 package org.example.backend.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -9,7 +8,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.*;
 
-@Entity(name = "users")
+@Entity
+@Table(name = "users")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -24,11 +24,12 @@ public class User implements UserDetails {
     private String firstName;
     @NotBlank
     private String lastName;
-    
+
     private String phone;
 
     private String parentPhone;
     @NotBlank
+    @Column(unique = true)
     private String username;
     @NotBlank
     private String password;
@@ -43,12 +44,14 @@ public class User implements UserDetails {
     @ManyToMany(fetch = FetchType.EAGER)
     private List<Role> roles;
 
-    @ManyToMany(mappedBy = "students")
-    private List<Group> studentGroups;
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GroupStudent> groupStudents;
 
     @ManyToMany(mappedBy = "teachers")
     private List<Group> teacherGroups;
 
+    @Column(nullable = false)
+    private boolean status = true;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -67,15 +70,29 @@ public class User implements UserDetails {
     @ToString.Exclude
     private Set<User> teachers = new HashSet<>();
 
-    @OneToMany(mappedBy = "student")
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Debts> debts;
 
-    @OneToOne(mappedBy = "student", cascade = CascadeType.ALL)
-    private Discount discount;
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Discount> discounts = new ArrayList<>();
 
+    // Student sifatida olingan refundlar
+    @OneToMany(mappedBy = "student")
+    private List<Refund> studentRefunds;
+
+    // Receptionist amalga oshirgan refundlar
+    @OneToMany(mappedBy = "receptionist")
+    private List<Refund> receptionistRefunds;
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ExamGrades> examGrades = new ArrayList<>();
+
+
+    @OneToMany(mappedBy = "teacher", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TeacherSalary> teacherSalaries = new ArrayList<>();
+
+    @OneToMany(mappedBy = "receptionist", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReceptionSalary> receptionSalaries = new ArrayList<>();
 
 
     @Override

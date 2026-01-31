@@ -1,5 +1,6 @@
 package org.example.backend.services.filialService;
 import org.example.backend.dtoResponse.FilialDto;
+import org.example.backend.dtoResponse.FilialLocationResDto;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -15,4 +16,7 @@ public interface FilialService {
     void deleteFilial(UUID id);
 
     FilialDto getFilialById(UUID id);
+
+    List<FilialLocationResDto> getFilialsLocation();
+
 }

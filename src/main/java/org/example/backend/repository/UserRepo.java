@@ -1,5 +1,6 @@
 package org.example.backend.repository;
 
+import jakarta.validation.constraints.NotBlank;
 import org.example.backend.dtoResponse.StudentProjection;
 import org.example.backend.dtoResponse.StudentResDto;
 import org.example.backend.entity.Filial;
@@ -18,49 +19,77 @@ import java.util.UUID;
 
 @Repository
 public interface UserRepo extends JpaRepository<User, UUID> {
-
     Optional<User> findByUsername(String username);
 
-    List<User> getByRoles(List<Role> roles);
+    @Query("SELECT u FROM User u JOIN u.roles r WHERE r IN :roles")
+    List<User> getByRoles(@Param("roles") List<Role> roles);
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Query("""
-            SELECT u FROM users u WHERE :group member of u.studentGroups and :role member of u.roles""")
+                SELECT u FROM User u
+                WHERE :group member of u.groupStudents
+                  AND :role member of u.roles
+            """)
     List<StudentProjection> findUsersByGroupAndRole(@Param("group") Group group, @Param("role") Role role);
 
-    @Transactional
     @Query("""
-                SELECT u FROM users u
+                SELECT u FROM User u
                 JOIN u.roles r
+                JOIN u.groupStudents gs
                 WHERE r.name = 'ROLE_STUDENT'
-                  AND :group member of u.studentGroups
+                  AND gs.group = :group
                   AND :filial member of u.filials
             """)
     List<User> findStudentsByFilialAndGroup(@Param("filial") Filial filial,
                                             @Param("group") Group group);
 
-    @Transactional
+
+    @Transactional(readOnly = true)
     @Query("""
-                SELECT u FROM users u
-                    JOIN u.roles r
-                    WHERE r.name = 'ROLE_STUDENT'
-                      AND :group member of u.studentGroups
+                SELECT u FROM User u
+                JOIN u.roles r
+                JOIN u.groupStudents gs
+                WHERE r.name = 'ROLE_STUDENT'
+                  AND gs.group = :group
             """)
     List<User> findStudentsByGroup(@Param("group") Group group);
 
-    @Transactional
-    @Query("""
-                         SELECT u FROM users u LEFT JOIN FETCH u.teacherGroups WHERE u.id = :id
-            """)
+
+    @Transactional(readOnly = true)
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.teacherGroups WHERE u.id = :id")
     Optional<User> findByIdWithGroups(@Param("id") UUID id);
 
     @Transactional(readOnly = true)
     @Query("""
-    SELECT u FROM users u
-    JOIN u.roles r
-    WHERE r.name = 'ROLE_STUDENT'
-      AND :filial MEMBER OF u.filials
-""")
+                SELECT u FROM User u
+                JOIN u.roles r
+                WHERE r.name = 'ROLE_STUDENT'
+                  AND :filial MEMBER OF u.filials
+            """)
     List<User> findStudentsByFilial(@Param("filial") Filial filial);
+
+    boolean existsByUsername(String username);
+
+    @Query("""
+            SELECT u FROM User u
+            JOIN u.roles r
+            WHERE r.name = :roleName
+            """)
+    List<User> findAllByRole(
+            @Param("roleName") String roleName
+    );
+
+
+    @Query("""
+            SELECT u FROM User u
+            JOIN u.roles r
+            JOIN u.filials f
+            WHERE r.name = :roleName
+            AND f.id = :filialId
+            """)
+    List<User> findAllByRoleAndFilial(
+            @Param("roleName") String roleName,
+            @Param("filialId") UUID filialId
+    );
 
 }

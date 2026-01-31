@@ -6,6 +6,6 @@ import org.example.backend.dto.NotificationDto;
 import java.io.IOException;
 
 public interface NotificationService {
-    void postMessage(NotificationDto notificationDto) throws IOException;
 
+    void sendMessageToStudentsOrParents(NotificationDto notificationDto) throws IOException;
 }

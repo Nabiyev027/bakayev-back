@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,4 +25,10 @@ public interface PaymentRepo extends JpaRepository<Payment, UUID> {
     @Query("SELECT p FROM payment p WHERE p.student = :student AND p.paymentStatus = :status ORDER BY p.date DESC")
     Optional<Payment> getFirstPendingPayment(@Param("student") User student, @Param("status") PaymentStatus status);
 
+    Optional<Payment> findByStudentAndDate(User user, LocalDate currentMonthDate);
+
+    Optional<Payment> findTopByStudentOrderByDateDesc(User student);
+
+
+    void getPaymentsByStudent(User student);
 }

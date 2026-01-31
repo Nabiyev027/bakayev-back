@@ -1,6 +1,7 @@
 package org.example.backend.Enum;
 
 public enum PaymentStatus {
+    NOTPAID,
     PENDING,
     PAID;
 
