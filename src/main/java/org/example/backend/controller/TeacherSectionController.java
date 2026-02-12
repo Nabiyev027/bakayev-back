@@ -6,6 +6,7 @@ import org.example.backend.dtoResponse.TeacherSectionImgResDto;
 import org.example.backend.dtoResponse.TeacherSectionResDto;
 import org.example.backend.services.teacherService.TeacherService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,7 +16,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/teacherSection")
 @RequiredArgsConstructor
-@CrossOrigin
 public class TeacherSectionController {
     private final TeacherService teacherService;
 
@@ -51,6 +51,7 @@ public class TeacherSectionController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PostMapping
     public ResponseEntity<?> postTeacherInfo(@RequestParam MultipartFile img,
                                              @RequestParam String firstName, @RequestParam String lastName,
@@ -65,6 +66,7 @@ public class TeacherSectionController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> editTeacherInfo(@PathVariable UUID id, @RequestParam(required = false) MultipartFile img,
                                              @RequestParam String firstName, @RequestParam String lastName,
@@ -80,7 +82,7 @@ public class TeacherSectionController {
     }
 
 
-
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteTeacherInfo(@PathVariable UUID id) {
         try {

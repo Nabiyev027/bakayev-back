@@ -5,6 +5,7 @@ import org.example.backend.dtoResponse.CourseSectionResDto;
 import org.example.backend.dtoResponse.CourseSectionWithCardDto;
 import org.example.backend.services.courseService.CourseService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -14,7 +15,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/courseSection")
 @RequiredArgsConstructor
-@CrossOrigin
 public class CourseSectionController {
     private final CourseService courseService;
 
@@ -28,6 +28,7 @@ public class CourseSectionController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/get")
     public ResponseEntity<?> getCourse() {
         try {
@@ -38,6 +39,7 @@ public class CourseSectionController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PostMapping
     public ResponseEntity<?> addCourse(@RequestParam String titleUz, @RequestParam String titleRu, @RequestParam String titleEn) {
         try {
@@ -49,6 +51,7 @@ public class CourseSectionController {
     }
 
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateCourse(@PathVariable UUID id, @RequestParam String titleUz, @RequestParam String titleRu, @RequestParam String titleEn) {
         try {
@@ -59,6 +62,7 @@ public class CourseSectionController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteCourse(@PathVariable UUID id) {
         try {

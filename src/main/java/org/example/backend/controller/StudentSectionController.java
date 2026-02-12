@@ -2,9 +2,9 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dtoResponse.StudentSectionResDto;
-import org.example.backend.entity.StudentSection;
 import org.example.backend.services.studentService.StudentService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,7 +14,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/studentSection")
 @RequiredArgsConstructor
-@CrossOrigin
 public class StudentSectionController {
 
     private final StudentService studentService;
@@ -29,6 +28,7 @@ public class StudentSectionController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PostMapping
     public ResponseEntity<?> postStudentInfo(@RequestParam MultipartFile img, @RequestParam String name,
                                              @RequestParam Double listening, @RequestParam Double writing,
@@ -43,6 +43,7 @@ public class StudentSectionController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> editStudentInfo(@PathVariable UUID id, @RequestParam(required = false) MultipartFile img,
                                              @RequestParam String name, @RequestParam Double listening,
@@ -56,6 +57,7 @@ public class StudentSectionController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteStudentInfo(@PathVariable UUID id) {
         try {

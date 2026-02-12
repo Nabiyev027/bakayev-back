@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dtoResponse.CardSkillResDto;
 import org.example.backend.services.cardSkill.CardSkillService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,10 +13,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/cardSkill")
 @RequiredArgsConstructor
-@CrossOrigin
 public class CardSkillController {
 
     private final CardSkillService cardSkillService;
+
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getCardSkill(@PathVariable UUID id) {
@@ -27,6 +28,7 @@ public class CardSkillController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PostMapping("/{cardId}")
     public ResponseEntity<?> addCardSkill(@PathVariable UUID cardId, String titleUz, String titleRu, String titleEn) {
         try {
@@ -37,7 +39,7 @@ public class CardSkillController {
         }
     }
 
-
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/{skillId}")
     public ResponseEntity<?> updateCardSkill(@PathVariable UUID skillId, @RequestParam String titleUz, @RequestParam String titleRu, @RequestParam String titleEn) {
         try {
@@ -48,6 +50,7 @@ public class CardSkillController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteCardSkill(@PathVariable UUID id) {
         try {

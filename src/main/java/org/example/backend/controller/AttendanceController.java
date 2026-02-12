@@ -7,6 +7,7 @@ import org.example.backend.dtoResponse.AttendanceDailyResDto;
 import org.example.backend.repository.GroupRepo;
 import org.example.backend.services.attendance.AttendanceService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -16,11 +17,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/attendance")
 @RequiredArgsConstructor
-@CrossOrigin
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @GetMapping("/{groupId}")
     public ResponseEntity<?> getTodayAttendanceGroup(@PathVariable UUID groupId) {
         try {
@@ -31,6 +32,7 @@ public class AttendanceController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @GetMapping("/get")
     public ResponseEntity<?> getAttendance(
             @RequestParam UUID groupId,
@@ -71,6 +73,7 @@ public class AttendanceController {
     }
 
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @PutMapping("/save/{groupId}")
     public ResponseEntity<?> markAttendance(@PathVariable UUID groupId, @RequestBody List<AttendanceGroupDto> attendanceGroupDtos) {
         try {
@@ -80,6 +83,7 @@ public class AttendanceController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
 
 
 }

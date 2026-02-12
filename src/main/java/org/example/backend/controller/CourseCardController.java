@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dtoResponse.CourseCardResDto;
 import org.example.backend.services.courseCardService.CourseCardService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,7 +14,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/courseCard")
 @RequiredArgsConstructor
-@CrossOrigin
 public class CourseCardController {
 
     private final CourseCardService courseCardService;
@@ -28,6 +28,7 @@ public class CourseCardController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PostMapping("/{perId}")
     public ResponseEntity<?> addCourseCard(@PathVariable UUID perId, @RequestParam MultipartFile img,
                                            @RequestParam String titleUz, @RequestParam String titleRu,
@@ -41,6 +42,7 @@ public class CourseCardController {
     }
 
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateCourseCard(@PathVariable UUID id,
                                               @RequestParam(required = false) MultipartFile img,
@@ -54,6 +56,7 @@ public class CourseCardController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteCourseCard(@PathVariable UUID id) {
         try {

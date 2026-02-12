@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.LoginDto;
 import org.example.backend.security.service.JwtService;
 import org.example.backend.services.userService.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -15,12 +16,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@CrossOrigin
 public class AuthController {
     private final UserService userService;
     private final JwtService jwtService;
 
-    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_SUPER_ADMIN','ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @PostMapping("/register")
     public ResponseEntity<?> register(
             @RequestParam("firstName") String firstName,
@@ -45,6 +45,7 @@ public class AuthController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_ADMIN')")
     @PostMapping("/registerForSuper")
     public ResponseEntity<?> registerSuperAdmin(
             @RequestParam("firstName") String firstName,
@@ -59,6 +60,7 @@ public class AuthController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_ADMIN')")
     @PutMapping("/updateForSuper/{id}")
     public ResponseEntity<?> updateSuperAdmin(@PathVariable UUID id,
                                               @RequestParam("firstName") String firstName,
@@ -87,9 +89,14 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@RequestHeader("key") String refreshToken){
-        System.out.println(refreshToken);
-        return  jwtService.refreshToken(refreshToken);
+    public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String authHeader) {
+        // Header kelganini va Bearer bilan boshlanishini tekshiramiz
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String refreshToken = authHeader.substring(7); // "Bearer " qismini qirqib tashlaymiz
+            System.out.println("Refresh token qabul qilindi: " + refreshToken);
+            return jwtService.refreshToken(refreshToken);
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token topilmadi");
     }
 
 }

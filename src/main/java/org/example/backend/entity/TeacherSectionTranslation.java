@@ -19,7 +19,7 @@ public class TeacherSectionTranslation {
     private UUID id;
 
     @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2000)
     private String description;
 
     @Enumerated(EnumType.STRING)

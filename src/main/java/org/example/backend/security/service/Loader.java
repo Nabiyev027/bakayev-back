@@ -16,83 +16,113 @@ import java.util.List;
 public class Loader implements CommandLineRunner {
 
     private final RoleRepo roleRepo;
-    private final PasswordEncoder passwordEncoder;
     private final UserRepo userRepo;
+    private final PasswordEncoder passwordEncoder;
+
     @Override
-    public void run(String... args) throws Exception {
-        List<Role> all = roleRepo.findAll();
-        if(all.isEmpty()){
-            List<Role> roles=List.of(
-                    Role.builder().name("ROLE_ADMIN").build(),
-                    Role.builder().name("ROLE_SUPER_ADMIN").build(),
-                    Role.builder().name("ROLE_RECEPTION").build(),
-                    Role.builder().name("ROLE_TEACHER").build(),
-                    Role.builder().name("ROLE_MAIN_RECEPTION").build(),
-                    Role.builder().name("ROLE_STUDENT").build()
-            );
-            roleRepo.saveAll(roles);
-            Role roleAdmin = roleRepo.findByName("ROLE_ADMIN").orElseThrow();
-            User userA=new User();
-            userA.setFirstName("Bakayev");
-            userA.setLastName("Sohib");
-            userA.setPhone("+998 91 442 00 31");
-            userA.setUsername("bakayev");
-            userA.setPassword(passwordEncoder.encode("123"));
-            userA.setRoles(List.of(roleAdmin));
-            userRepo.save(userA);
+    public void run(String... args) {
 
-            Role roleSuperAdmin = roleRepo.findByName("ROLE_SUPER_ADMIN").orElseThrow();
-            User userSup=new User();
-            userSup.setFirstName("admin");
-            userSup.setLastName("admin");
-            userSup.setPhone("+998 91 442 00 31");
-            userSup.setUsername("admin");
-            userSup.setPassword(passwordEncoder.encode("123"));
-            userSup.setRoles(List.of(roleSuperAdmin));
-            userRepo.save(userSup);
-
-            Role roleReception = roleRepo.findByName("ROLE_RECEPTION").orElseThrow();
-            User userR =  new User();
-            userR.setFirstName("Rajabov");
-            userR.setLastName("Lazizbek");
-            userR.setPhone("+998 91 442 00 31");
-            userR.setUsername("rajabov");
-            userR.setPassword(passwordEncoder.encode("123"));
-            userR.setRoles(List.of(roleReception));
-            userRepo.save(userR);
-
-            Role roleTeacher = roleRepo.findByName("ROLE_TEACHER").orElseThrow();
-            User userT =  new User();
-            userT.setFirstName("Umarov");
-            userT.setLastName("Bekzod");
-            userT.setPhone("+998 91 442 00 31");
-            userT.setUsername("umarov");
-            userT.setPassword(passwordEncoder.encode("123"));
-            userT.setRoles(List.of(roleTeacher));
-            userRepo.save(userT);
+        // ================= ROLELARNI QO‘SHISH =================
+        createRoleIfNotExists("ROLE_ADMIN");
+        createRoleIfNotExists("ROLE_SUPER_ADMIN");
+        createRoleIfNotExists("ROLE_RECEPTION");
+        createRoleIfNotExists("ROLE_TEACHER");
+        createRoleIfNotExists("ROLE_MAIN_RECEPTION");
+        createRoleIfNotExists("ROLE_STUDENT");
 
 
-            Role roleStudent = roleRepo.findByName("ROLE_STUDENT").orElseThrow();
-            User userS1 = new User();
-            userS1.setFirstName("Aliyev");
-            userS1.setLastName("Valijon");
-            userS1.setPhone("+998 91 442 00 31");
-            userS1.setUsername("aliyev");
-            userS1.setPassword(passwordEncoder.encode("123"));
-            userS1.setRoles(List.of(roleStudent));
-            userRepo.save(userS1);
+        // ================= USERLARNI QO‘SHISH =================
+        createUserIfNotExists(
+                "bakayev",
+                "Bakayev",
+                "Sohib",
+                "+998 91 442 00 31",
+                "123",
+                "ROLE_ADMIN"
+        );
 
-            User userS2 = new User();
-            userS2.setFirstName("Karimov");
-            userS2.setLastName("Axmed");
-            userS2.setPhone("+998 91 442 00 31");
-            userS2.setUsername("karimov");
-            userS2.setPassword(passwordEncoder.encode("123"));
-            userS2.setRoles(List.of(roleStudent));
-            userRepo.save(userS2);
+        createUserIfNotExists(
+                "admin",
+                "admin",
+                "admin",
+                "+998 91 442 00 31",
+                "123",
+                "ROLE_SUPER_ADMIN"
+        );
+
+        createUserIfNotExists(
+                "rajabov",
+                "Rajabov",
+                "Lazizbek",
+                "+998 91 442 00 31",
+                "123",
+                "ROLE_RECEPTION"
+        );
+
+        createUserIfNotExists(
+                "umarov",
+                "Umarov",
+                "Bekzod",
+                "+998 91 442 00 31",
+                "123",
+                "ROLE_TEACHER"
+        );
+
+        createUserIfNotExists(
+                "aliyev",
+                "Aliyev",
+                "Valijon",
+                "+998 91 442 00 31",
+                "123",
+                "ROLE_STUDENT"
+        );
+
+        createUserIfNotExists(
+                "karimov",
+                "Karimov",
+                "Axmed",
+                "+998 91 442 00 31",
+                "123",
+                "ROLE_STUDENT"
+        );
+    }
 
 
+    // ================= ROLE CREATE METHOD =================
+    private void createRoleIfNotExists(String roleName) {
+        if (roleRepo.findByName(roleName).isEmpty()) {
+            Role role = Role.builder()
+                    .name(roleName)
+                    .build();
+            roleRepo.save(role);
         }
+    }
 
+
+    // ================= USER CREATE METHOD =================
+    private void createUserIfNotExists(
+            String username,
+            String firstName,
+            String lastName,
+            String phone,
+            String rawPassword,
+            String roleName
+    ) {
+
+        if (userRepo.findByUsername(username).isEmpty()) {
+
+            Role role = roleRepo.findByName(roleName)
+                    .orElseThrow(() -> new RuntimeException("Role topilmadi: " + roleName));
+
+            User user = new User();
+            user.setUsername(username);
+            user.setFirstName(firstName);
+            user.setLastName(lastName);
+            user.setPhone(phone);
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            user.setRoles(List.of(role));
+
+            userRepo.save(user);
+        }
     }
 }

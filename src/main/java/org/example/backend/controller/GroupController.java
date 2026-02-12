@@ -6,6 +6,7 @@ import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.User;
 import org.example.backend.services.groupService.GroupService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,20 +17,21 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/group")
 @RequiredArgsConstructor
-@CrossOrigin
 public class GroupController {
     private final GroupService groupService;
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/getAll")
-    public ResponseEntity<?> getAllGroups() {
+    public ResponseEntity<?> getAllGroups(@RequestParam String filialId) {
         try {
-            List<GroupsResDto> groups =  groupService.getGroupsWithData();
+            List<GroupsResDto> groups =  groupService.getGroupsWithData(filialId);
             return  ResponseEntity.ok(groups);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @GetMapping("/{groupId}")
     public ResponseEntity<?> getStudentsByGroup(@PathVariable UUID groupId) {
         try{
@@ -40,6 +42,7 @@ public class GroupController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @GetMapping("/teacher/{teacherId}")
     public ResponseEntity<?> getGroupByTeacher(@PathVariable UUID teacherId) {
         try{
@@ -50,6 +53,7 @@ public class GroupController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_STUDENT','ROLE_TEACHER','ROLE_ADMIN')")
     @GetMapping("/student/{studentId}")
     public ResponseEntity<?> getGroupByStudent(@PathVariable UUID studentId) {
         try{
@@ -60,6 +64,7 @@ public class GroupController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @GetMapping
     public ResponseEntity<?> getGroupByFilial(@RequestParam UUID filialId) {
         try{
@@ -70,6 +75,7 @@ public class GroupController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @GetMapping("/getByFilials")
     public ResponseEntity<?> getGroupsByFilials(
             @RequestParam("ids") String ids
@@ -88,6 +94,7 @@ public class GroupController {
     }
 
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @GetMapping("/getNames")
     public ResponseEntity<?> getGroupsNames() {
         try {
@@ -98,6 +105,7 @@ public class GroupController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PostMapping("/add")
     public ResponseEntity<?> postGroup(@RequestBody GroupDto groupDto) {
         try {
@@ -108,6 +116,7 @@ public class GroupController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> editGroup(@PathVariable UUID id, @RequestBody GroupDto groupDto) {
         try {
@@ -119,6 +128,7 @@ public class GroupController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteGroup(@PathVariable UUID id) {
         try {

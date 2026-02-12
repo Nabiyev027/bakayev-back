@@ -5,6 +5,7 @@ import org.example.backend.dtoResponse.SalaryByGroupInfoResDto;
 import org.example.backend.dtoResponse.SalaryPaymentResDto;
 import org.example.backend.services.salaryService.SalaryService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,10 +14,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/salary")
 @RequiredArgsConstructor
-@CrossOrigin
 public class SalaryController {
     private final SalaryService salaryService;
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/get")
     public ResponseEntity<?> getEmpSalary(
             @RequestParam(required = false) String filialId,
@@ -32,6 +33,7 @@ public class SalaryController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/teacher/{salaryId}")
     public ResponseEntity<?> getSalaryPayments(@PathVariable UUID salaryId) {
         try {
@@ -42,7 +44,7 @@ public class SalaryController {
         }
     }
 
-
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/reception/payment/{salaryId}")
     public ResponseEntity<?> getSalaryRecPayments(@PathVariable UUID salaryId) {
         try {
@@ -53,6 +55,7 @@ public class SalaryController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/teacher/info")
     public ResponseEntity<?> getSalaryInfo(@RequestParam UUID teacherId,
                                            @RequestParam Integer year,
@@ -65,6 +68,7 @@ public class SalaryController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/teacher/info/percentage/{salaryId}")
     public ResponseEntity<?> updateSalaryPercentage(@PathVariable UUID salaryId, @RequestParam Integer percentage) {
         try {
@@ -75,6 +79,7 @@ public class SalaryController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/reception/amount/{salaryId}")
     public ResponseEntity<?> updateReceptionSalaryAmount(@PathVariable UUID salaryId, @RequestParam Integer amount) {
         try {
@@ -85,6 +90,7 @@ public class SalaryController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PostMapping("/teacher/payment/{salaryId}")
     public ResponseEntity<?> postSalaryPayment(@PathVariable UUID salaryId, @RequestParam UUID groupId, @RequestParam Integer amount) {
         try {
@@ -95,6 +101,7 @@ public class SalaryController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PostMapping("/reception/payment/{salaryId}")
     public ResponseEntity<?> postRecSalaryPayment(@PathVariable UUID salaryId, @RequestParam Integer amount) {
         try {
@@ -105,6 +112,7 @@ public class SalaryController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/teacher/payment/del/{paymentId}")
     public ResponseEntity<?> deletePayment(@PathVariable UUID paymentId) {
         try {
@@ -115,6 +123,7 @@ public class SalaryController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/reception/payment/del/{paymentId}")
     public ResponseEntity<?> deleteRecPayment(@PathVariable UUID paymentId) {
         try {
@@ -124,9 +133,5 @@ public class SalaryController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
-
-
-
 
 }

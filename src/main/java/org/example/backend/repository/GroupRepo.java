@@ -5,6 +5,7 @@ import org.example.backend.entity.Filial;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.Room;
 import org.example.backend.entity.User;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,7 +21,8 @@ import java.util.UUID;
 public interface GroupRepo extends JpaRepository<Group, UUID> {
     Optional<Group> findFirstByOrderByIdAsc();
 
-    List<Group> getGroupByFilial(Filial filial);
+    List<Group> getGroupByFilial(Filial filial, Sort sort);
+
 
     @Query(value = """
     SELECT g.*

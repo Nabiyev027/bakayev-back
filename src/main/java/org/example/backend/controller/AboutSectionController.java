@@ -5,6 +5,7 @@ import org.example.backend.dtoResponse.AboutSectionHomeResDto;
 import org.example.backend.dtoResponse.AboutSectionResDto;
 import org.example.backend.services.aboutService.AboutService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,6 +40,7 @@ public class AboutSectionController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @PostMapping
     public ResponseEntity<?> aboutPostAndUpdate(
             @RequestParam(required = false) MultipartFile img,
@@ -64,6 +66,7 @@ public class AboutSectionController {
     }
 
 
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAbout(@PathVariable UUID id) {
         try {

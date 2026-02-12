@@ -14,7 +14,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/differenceSection")
 @RequiredArgsConstructor
-@CrossOrigin
 public class DifferenceSectionController {
 
     private final DifferenceService differenceService;

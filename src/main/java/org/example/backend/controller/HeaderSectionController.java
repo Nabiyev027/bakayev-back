@@ -5,6 +5,7 @@ import org.example.backend.dtoResponse.HeaderSectionDto;
 import org.example.backend.dtoResponse.HomeSectionResDto;
 import org.example.backend.services.headerService.HeaderService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,6 +37,7 @@ public class HeaderSectionController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @PostMapping("/post")
     public ResponseEntity<?> addHeaderSection(@RequestParam(required = false) MultipartFile img, @RequestParam String titleUz, @RequestParam String titleRu, @RequestParam String titleEn) {
         try {

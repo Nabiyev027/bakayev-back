@@ -48,7 +48,10 @@ public class PaymentServiceImpl implements PaymentService {
         int courseAmount = pci.getCoursePaymentAmount();
         int remainingAmount = paymentDto.getAmount();
 
-        Discount discount = discountRepo.findByStudent(user);
+        Discount discount = discountRepo
+                .findByStudentAndActiveTrue(user)
+                .orElse(null);
+
 
         String method = paymentDto.getPaymentMethod().equalsIgnoreCase("CARD")
                 ? PaymentMethod.CARD.name()
@@ -342,8 +345,11 @@ public class PaymentServiceImpl implements PaymentService {
             dto.setPaymentDate(payment.getDate());
             dto.setPaidAmount(payment.getPaidAmount());
 
-            // ❗ Null CHECK QO‘YILDI
-            Discount discountEntity = discountRepo.findByStudent(user);
+
+            Discount discountEntity = discountRepo
+                    .findByStudentAndActiveTrue(user)
+                    .orElse(null);
+
             Integer discount = (discountEntity != null) ? discountEntity.getQuantity() : 0;
             dto.setDiscountAmount(discount);
 
@@ -373,7 +379,10 @@ public class PaymentServiceImpl implements PaymentService {
         User user = userRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Discount byStudent = discountRepo.findByStudent(user);
+        Discount byStudent = discountRepo
+                .findByStudentAndActiveTrue(user)
+                .orElse(null);
+
 
         PaymentCourseInfo paymentPrice = paymentCourseInfoRepo.findAll().getFirst();
 

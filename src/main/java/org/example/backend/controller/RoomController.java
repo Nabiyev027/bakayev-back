@@ -6,6 +6,7 @@ import org.example.backend.dtoResponse.GroupRoomResDto;
 import org.example.backend.dtoResponse.RoomResDto;
 import org.example.backend.services.roomService.RoomService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,10 +15,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/room")
 @RequiredArgsConstructor
-@CrossOrigin
 public class RoomController {
     private final RoomService roomService;
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/info")
     public ResponseEntity<?> getRoomInfo(@RequestParam String filialId, @RequestParam String dayType) {
         try {
@@ -28,6 +29,7 @@ public class RoomController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/updateInfo")
     public ResponseEntity<?> updateRoomInfo(@RequestBody RoomUpdateDto dto) {
         try {
@@ -38,7 +40,7 @@ public class RoomController {
         }
     }
 
-
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/getAll")
     public ResponseEntity<?> getAllRooms() {
         try {
@@ -49,6 +51,7 @@ public class RoomController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/getAll/{filialId}")
     public ResponseEntity<?> getRoomsByBranch(@PathVariable String filialId) {
         try {
@@ -59,7 +62,7 @@ public class RoomController {
         }
     }
 
-
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PostMapping("/{filialId}")
     public ResponseEntity<?> create(@PathVariable UUID filialId ,@RequestBody RoomDto roomDto) {
         try {
@@ -70,6 +73,7 @@ public class RoomController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable UUID id, @RequestBody RoomDto roomDto) {
         try {
@@ -80,6 +84,7 @@ public class RoomController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable UUID id) {
         try {

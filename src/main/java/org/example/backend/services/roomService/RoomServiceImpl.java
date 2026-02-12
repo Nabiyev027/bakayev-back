@@ -68,12 +68,9 @@ public class RoomServiceImpl implements RoomService {
 
         List<Room> rooms;
 
-        if ("all".equalsIgnoreCase(filialId)) {
-            rooms = roomRepo.findAll(); // barcha filiallar
-        } else {
-            Filial filial = filialRepo.findById(UUID.fromString(filialId)).get();
+
+        Filial filial = filialRepo.findById(UUID.fromString(filialId)).get();
             rooms = roomRepo.findByFilial(filial);
-        }
 
         for (Room room : rooms) {
             GroupRoomResDto roomDto = new GroupRoomResDto();
@@ -136,7 +133,6 @@ public class RoomServiceImpl implements RoomService {
         group.setRoom(room);
         group.setStartTime(LocalTime.parse(dto.getStartTime()));
         group.setEndTime(LocalTime.parse(dto.getEndTime()));
-
         groupRepo.save(group);
     }
 

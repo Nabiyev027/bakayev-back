@@ -6,6 +6,7 @@ import org.example.backend.dtoResponse.FilialLocationResDto;
 import org.example.backend.services.filialService.FilialService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,7 +16,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/filial")
 @RequiredArgsConstructor
-@CrossOrigin
 public class FilialController {
 
     private final FilialService filialService;
@@ -52,6 +52,7 @@ public class FilialController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PostMapping
     public ResponseEntity<?> addFilial(@RequestParam("name") String name, @RequestParam("description") String description,
                                        @RequestParam("location") String location, @RequestParam("image") MultipartFile image) {
@@ -63,6 +64,7 @@ public class FilialController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateFilial(@PathVariable UUID id , @RequestParam("name") String name, @RequestParam("description") String description,
                                           @RequestParam("location") String location, @RequestParam(value = "image", required = false) MultipartFile image) {
@@ -76,6 +78,7 @@ public class FilialController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteFilial(@PathVariable UUID id) {
         try {

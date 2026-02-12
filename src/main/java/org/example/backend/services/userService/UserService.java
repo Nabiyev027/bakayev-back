@@ -75,5 +75,7 @@ public interface UserService {
     void editDiscount(UUID id, DiscountDto discountDto);
 
     void deleteDiscount(UUID id);
+
+    UserReception getUserInfoByLogin(UUID userId);
 }
 

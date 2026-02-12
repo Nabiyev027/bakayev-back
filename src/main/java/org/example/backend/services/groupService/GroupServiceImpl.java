@@ -7,6 +7,7 @@ import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.*;
 import org.example.backend.repository.*;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,52 +30,61 @@ public class GroupServiceImpl implements GroupService{
 
     @Transactional(readOnly = true)
     @Override
-    public List<GroupsResDto> getGroupsWithData() {
-        List<GroupsResDto> groupsResDtos = new ArrayList<>();
-        List<Group> all = groupRepo.findAll();
+    public List<GroupsResDto> getGroupsWithData(String filialId) {
 
-        for (Group group : all) {
-            GroupsResDto newGroup = new GroupsResDto();
-            newGroup.setId(group.getId());
-            newGroup.setName(group.getName());
-            newGroup.setDegree(group.getDegree());
-            newGroup.setDayType(group.getDayType().toString());
-            Room room = roomRepo.findById(group.getRoom().getId()).orElse(null);
-            RoomResDto roomDto = new RoomResDto();
-            roomDto.setId(room.getId());
-            roomDto.setName(room.getName());
-            roomDto.setNumber(room.getNumber());
-            newGroup.setRoomDto(roomDto);
+        List<Group> groups;
+        if (filialId == null || filialId.trim().isEmpty() || filialId.equalsIgnoreCase("all")) {
+            groups = groupRepo.findAll(Sort.by(Sort.Direction.ASC, "name")); // name bo'yicha tartib
+        } else {
+            Filial filial = filialRepo.findById(UUID.fromString(filialId))
+                    .orElseThrow(() -> new RuntimeException("Filial not found"));
 
-            newGroup.setStartTime(group.getStartTime());
-            newGroup.setEndTime(group.getEndTime());
-
-            List<User> students = group.getGroupStudents().stream()
-                    .map(GroupStudent::getStudent)
-                    .toList();
-
-            newGroup.setStudentsNumber(students.size());
-            List<TeacherNameDto> teacherNameDtoList = new ArrayList<>();
-            List<User> teachers = group.getTeachers();
-            for (User teacher : teachers) {
-                TeacherNameDto teacherNameDto = new TeacherNameDto();
-                teacherNameDto.setId(teacher.getId());
-                teacherNameDto.setName(teacher.getFirstName() + " " + teacher.getLastName());
-                teacherNameDtoList.add(teacherNameDto);
-            }
-            newGroup.setTeacherNameDtos(teacherNameDtoList);
-
-            FilialNameDto filialNameDto = new FilialNameDto();
-            filialNameDto.setId(group.getFilial().getId());
-            filialNameDto.setName(group.getFilial().getName());
-
-            newGroup.setFilialNameDto(filialNameDto);
-
-            groupsResDtos.add(newGroup);
+            groups = groupRepo.getGroupByFilial(filial, Sort.by(Sort.Direction.ASC, "name")); // agar getGroupByFilial Sort qabul qilsa
         }
 
-        return groupsResDtos;
+
+        return groups.stream().map(group -> {
+            GroupsResDto dto = new GroupsResDto();
+            dto.setId(group.getId());
+            dto.setName(group.getName());
+            dto.setDegree(group.getDegree());
+            dto.setDayType(group.getDayType().toString());
+            dto.setStartTime(group.getStartTime());
+            dto.setEndTime(group.getEndTime());
+
+            if (group.getRoom() != null) {
+                RoomResDto roomDto = new RoomResDto();
+                roomDto.setId(group.getRoom().getId());
+                roomDto.setName(group.getRoom().getName());
+                roomDto.setNumber(group.getRoom().getNumber());
+                dto.setRoomDto(roomDto);
+            }
+
+            dto.setStudentsNumber(
+                    group.getGroupStudents() != null ? group.getGroupStudents().size() : 0
+            );
+
+            List<TeacherNameDto> teacherDtos = group.getTeachers().stream()
+                    .map(teacher -> {
+                        TeacherNameDto tDto = new TeacherNameDto();
+                        tDto.setId(teacher.getId());
+                        tDto.setName(teacher.getFirstName() + " " + teacher.getLastName());
+                        return tDto;
+                    }).toList();
+
+            dto.setTeacherNameDtos(teacherDtos);
+
+            if (group.getFilial() != null) {
+                FilialNameDto filialDto = new FilialNameDto();
+                filialDto.setId(group.getFilial().getId());
+                filialDto.setName(group.getFilial().getName());
+                dto.setFilialNameDto(filialDto);
+            }
+
+            return dto;
+        }).toList();
     }
+
 
     @Override
     public void createGroup(GroupDto groupDto) {
@@ -196,7 +206,8 @@ public class GroupServiceImpl implements GroupService{
 
         Filial filial = filialRepo.findById(filialId).get();
 
-        List<Group> groupByFilial = groupRepo.getGroupByFilial(filial);
+        List<Group> groupByFilial = groupRepo.getGroupByFilial(filial, Sort.by(Sort.Direction.ASC, "name"));
+
         groupByFilial.forEach(group -> {
             GroupsNamesDto groupsNamesDto = new GroupsNamesDto();
             groupsNamesDto.setId(group.getId());

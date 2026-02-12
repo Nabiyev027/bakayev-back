@@ -9,6 +9,7 @@ import org.example.backend.repository.ReferenceRepo;
 import org.example.backend.repository.ReferenceStatusRepo;
 import org.example.backend.services.referenceService.ReferenceService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,7 +18,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/reference")
 @RequiredArgsConstructor
-@CrossOrigin
 public class ReferenceController {
 
     private final ReferenceService referenceService;
@@ -51,6 +51,7 @@ public class ReferenceController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/getAll")
     public ResponseEntity<?> getRef() {
         try {
@@ -61,6 +62,7 @@ public class ReferenceController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/accept/{userId}")
     public ResponseEntity<?> acceptRef(@PathVariable UUID userId, @RequestParam UUID referenceId) {
         try {
@@ -74,6 +76,7 @@ public class ReferenceController {
 
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("delete/{referenceId}")
     public ResponseEntity<?> deleteRef(@PathVariable UUID referenceId) {
         try {

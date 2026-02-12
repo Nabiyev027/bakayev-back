@@ -1,8 +1,6 @@
 package org.example.backend.repository;
 
-import jakarta.validation.constraints.NotBlank;
 import org.example.backend.dtoResponse.StudentProjection;
-import org.example.backend.dtoResponse.StudentResDto;
 import org.example.backend.entity.Filial;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.Role;
@@ -26,11 +24,17 @@ public interface UserRepo extends JpaRepository<User, UUID> {
 
     @Transactional(readOnly = true)
     @Query("""
-                SELECT u FROM User u
-                WHERE :group member of u.groupStudents
-                  AND :role member of u.roles
-            """)
-    List<StudentProjection> findUsersByGroupAndRole(@Param("group") Group group, @Param("role") Role role);
+    SELECT u
+    FROM User u
+    JOIN u.groupStudents gs
+    WHERE gs.group = :group
+      AND :role MEMBER OF u.roles
+""")
+    List<StudentProjection> findUsersByGroupAndRole(
+            @Param("group") Group group,
+            @Param("role") Role role
+    );
+
 
     @Query("""
                 SELECT u FROM User u

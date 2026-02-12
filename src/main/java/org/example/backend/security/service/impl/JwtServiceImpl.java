@@ -1,6 +1,7 @@
 package org.example.backend.security.service.impl;
 
 import io.jsonwebtoken.*;
+
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.security.service.JwtService;
@@ -39,15 +40,17 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public Jws<Claims> extractJwt(String jwt) {
-        return Jwts.parserBuilder()
-                .setSigningKey(signWithKey())
+        return Jwts.parser()
+                .verifyWith(signWithKey()) // Yangi versiya uchun
                 .build()
-                .parseClaimsJws(jwt);  // parseSignedClaims o‘rniga
+                .parseSignedClaims(jwt);
     }
 
 
     @Override
     public String generateJwt(String id, Authentication authentication) {
+        if (id == null) throw new IllegalArgumentException("User ID cannot be null for JWT generation");
+
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + 1000 * 60 * 60 * 24); // 1 kun
 
@@ -60,21 +63,23 @@ public class JwtServiceImpl implements JwtService {
                 .subject(authentication.getName())
                 .issuedAt(now)
                 .expiration(expiryDate)
+                .claim("userId", id)
                 .claim("authorities", authorities)
-                .signWith(signWithKey(), SignatureAlgorithm.HS256)
+                .signWith(signWithKey(), Jwts.SIG.HS256) // Yangi versiya sintaksisi
                 .compact();
     }
 
     @Override
     public String generateRefreshJwt(String id, Authentication authentication) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + 1000L * 60 * 60 * 24 * 7); // 7 kun
+        Date expiryDate = new Date(now.getTime() + 1000L * 60 * 60 * 24 * 7);
 
         return Jwts.builder()
                 .subject(authentication.getName())
+                .claim("userId", id) // Refresh tokenga ham ID ni qo'shdik!
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(signWithKey(), SignatureAlgorithm.HS256)
+                .signWith(signWithKey(), Jwts.SIG.HS256) // Yangi versiya sintaksisi
                 .compact();
     }
 
@@ -82,30 +87,42 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public ResponseEntity<?> refreshToken(String refreshToken) {
         try {
-            String id = extractJwt(refreshToken).getPayload().getSubject();
+            Claims claims = extractJwt(refreshToken).getPayload();
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(id);
+            String username = claims.getSubject();
+            String userId = (String) claims.get("userId");
 
-            Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    userDetails,
-                    null,
-                    userDetails.getAuthorities()
+            UserDetails userDetails =
+                    userDetailsService.loadUserByUsername(username);
+
+            Authentication authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+
+            // 🔥 YANGI TOKENLAR
+            String newAccessToken = generateJwt(userId, authentication);
+            String newRefreshToken = generateRefreshJwt(userId, authentication);
+
+            return ResponseEntity.ok(
+                    Map.of(
+                            "accessToken", newAccessToken,
+                            "refreshToken", newRefreshToken
+                    )
             );
-
-            // yangi access token
-            String newAccessToken = generateJwt(id, authentication);
-
-            Map<String, Object> response = Map.of(
-                    "accessToken", newAccessToken
-            );
-
-            return ResponseEntity.ok(response);
 
         } catch (ExpiredJwtException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token muddati tugagan");
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Refresh token muddati tugagan");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token yaroqsiz");
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Refresh token yaroqsiz");
         }
     }
+
 }
 

@@ -49,16 +49,19 @@ public class SalaryServiceImpl implements SalaryService {
 
             for (User teacher : teachers) {
 
-                Optional<TeacherSalary> optionalSalary =
-                        teacherSalaryRepo.findByTeacherAndMonth(
+                List<TeacherSalary> salaries =
+                        teacherSalaryRepo.findAllByTeacherAndMonth(
                                 teacher.getId(), startDate, endDate
                         );
 
                 TeacherSalary salary;
 
-                if (optionalSalary.isPresent()) {
-                    salary = optionalSalary.get();
+                if (!salaries.isEmpty()) {
+                    salary = salaries.get(0); // ORDER BY DESC bo‘lsa – eng oxirgisi
                 } else {
+                    salary = new TeacherSalary();
+                    salary.setTeacher(teacher);
+
                     salary = new TeacherSalary();
                     salary.setTeacher(teacher);
 
@@ -68,10 +71,9 @@ public class SalaryServiceImpl implements SalaryService {
                         salary.setGroup(null);
                     }
 
-                    salary.setTotalAmount(0);
                     salary.setSalaryDate(startDate);
 
-                    // ⭐ O‘TGAN OY PERCENTAGE NI OLAMIZ
+// 🔥 O‘tgan oyning summasini ko‘chiramiz
                     Optional<TeacherSalary> lastSalary =
                             teacherSalaryRepo
                                     .findTopByTeacherIdAndSalaryDateBeforeOrderBySalaryDateDesc(
@@ -79,11 +81,17 @@ public class SalaryServiceImpl implements SalaryService {
                                             startDate
                                     );
 
+                    salary.setTotalAmount(
+                            lastSalary.map(TeacherSalary::getTotalAmount).orElse(0)
+                    );
+
+// percentage allaqachon bor edi
                     salary.setPercentage(
                             lastSalary.map(TeacherSalary::getPercentage).orElse(0)
                     );
 
                     salary = teacherSalaryRepo.save(salary);
+
                 }
 
 
@@ -132,11 +140,22 @@ public class SalaryServiceImpl implements SalaryService {
                 if (optionalSalary.isPresent()) {
                     salary = optionalSalary.get();
                 } else {
-                    // 🔥 Salary yo‘q → 0 bilan yaratamiz
                     salary = new ReceptionSalary();
                     salary.setReceptionist(reception);
-                    salary.setSalaryAmount(0);
                     salary.setSalaryDate(startDate);
+
+                    // 🔥 O‘tgan oyning oxirgi salary ni olamiz
+                    Optional<ReceptionSalary> lastSalary =
+                            receptionSalaryRepo
+                                    .findTopByReceptionistIdAndSalaryDateBeforeOrderBySalaryDateDesc(
+                                            reception.getId(),
+                                            startDate
+                                    );
+
+                    salary.setSalaryAmount(
+                            lastSalary.map(ReceptionSalary::getSalaryAmount).orElse(0)
+                    );
+
                     salary = receptionSalaryRepo.save(salary);
                 }
 
@@ -161,6 +180,7 @@ public class SalaryServiceImpl implements SalaryService {
 
             return result;
         }
+
 
         return Collections.emptyList();
     }

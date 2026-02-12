@@ -8,6 +8,7 @@ import org.example.backend.dtoResponse.PaymentResDto;
 import org.example.backend.entity.PaymentCourseInfo;
 import org.example.backend.services.paymentService.PaymentService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -17,11 +18,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/payment")
 @RequiredArgsConstructor
-@CrossOrigin
 public class PaymentController {
 
     private final PaymentService paymentService;
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PostMapping("/addPayment")
     public ResponseEntity<?> addStudentPayment(@RequestBody PaymentDto paymentDto){
         try {
@@ -32,6 +33,7 @@ public class PaymentController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/getPayments")
     public ResponseEntity<?> getPayments(@RequestParam UUID groupId,
                                          @RequestParam(required = false) String dateFrom,
@@ -52,6 +54,7 @@ public class PaymentController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @PostMapping("/courseInfo")
     public ResponseEntity<?> addPaymentInfo(@RequestParam String day, @RequestParam Integer amount){
         try {
@@ -72,6 +75,7 @@ public class PaymentController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN','ROLE_STUDENT')")
     @GetMapping("/student/{id}")
     public ResponseEntity<?> getStudentPayments(@PathVariable UUID id){
         try {
@@ -82,6 +86,7 @@ public class PaymentController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN','ROLE_STUDENT')")
     @GetMapping("/coursePrice/{id}")
     public ResponseEntity<?> getPaymentInfo(@PathVariable UUID id){
         try {
@@ -92,6 +97,7 @@ public class PaymentController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN','ROLE_STUDENT')")
     @GetMapping("/paymentsAmount/{id}")
     public ResponseEntity<?> getPaymentsAmount(@PathVariable String id){
             try {

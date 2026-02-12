@@ -50,4 +50,5 @@ public interface ReceptionSalaryRepo extends JpaRepository<ReceptionSalary, UUID
     );
 
 
+    Optional<ReceptionSalary> findTopByReceptionistIdAndSalaryDateBeforeOrderBySalaryDateDesc(UUID id, LocalDate startDate);
 }

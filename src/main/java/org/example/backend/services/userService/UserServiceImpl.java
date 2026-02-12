@@ -975,6 +975,19 @@ public class UserServiceImpl implements UserService {
         discountRepo.delete(discount);
     }
 
+    @Override
+    public UserReception getUserInfoByLogin(UUID userId) {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found by userId: " + userId));
+
+        UserReception userReception = new UserReception();
+        userReception.setFullName(user.getFirstName() + " " + user.getLastName());
+        userReception.setUsername(user.getUsername());
+        userReception.setPhone(user.getPhone());
+        userReception.setRoles(user.getRoles());
+        return userReception;
+    }
+
 
     @Transactional
     @Override
@@ -1065,17 +1078,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Map<String, String> login(LoginDto loginDto) {
-        // 1️⃣ Foydalanuvchini username orqali olish
-        User user = userRepo.findByUsername(loginDto.getUsername())
-                .orElseThrow(() -> new RuntimeException("Foydalanuvchi topilmadi"));
-
-        // 2️⃣ STATUS = true bo‘lmasa loginni rad etish
-        if (!user.isStatus()) {
-            throw new RuntimeException("Foydalanuvchi faol emas");
-        }
-
-        // 3️⃣ Authentication
+    @Transactional(readOnly = true)
+    public Map<String, Object> login(LoginDto loginDto) { // Map<String, Object> qildik, chunki rollar List bo'ladi
+        // 1️⃣ Authentication - Parolni tekshirish (Agar noto'g'ri bo'lsa, o'zi Exception otadi)
         Authentication authenticate = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginDto.getUsername(),
@@ -1083,17 +1088,32 @@ public class UserServiceImpl implements UserService {
                 )
         );
 
-        // 4️⃣ JWT va Refresh token generatsiya qilish
+        // 2️⃣ Foydalanuvchini olish
+        User user = userRepo.findByUsername(loginDto.getUsername())
+                .orElseThrow(() -> new RuntimeException("Foydalanuvchi topilmadi"));
+
+        // 3️⃣ STATUS tekshirish
+        if (!user.isStatus()) {
+            throw new RuntimeException("Foydalanuvchi faol emas");
+        }
+
+        // 4️⃣ JWT generatsiya qilish (ID ni beryapmiz)
         String jwt = jwtService.generateJwt(user.getId().toString(), authenticate);
         String refreshJwt = jwtService.generateRefreshJwt(user.getId().toString(), authenticate);
 
-        // 5️⃣ Token va rollarni qaytarish
-        Map<String, String> tokens = new HashMap<>();
-        tokens.put("access_token", jwt);
-        tokens.put("refresh_token", refreshJwt);
-        tokens.put("roles", user.getRoles().toString());
+        // 5️⃣ Rollarni toza List ko'rinishida olish
+        List<String> roles = user.getRoles().stream()
+                .map(role -> role.getName()) // Role entity'da getName() bor deb hisoblaymiz
+                .collect(Collectors.toList());
 
-        return tokens;
+        // 6️⃣ Natijani qaytarish
+        Map<String, Object> response = new HashMap<>();
+        response.put("access_token", jwt);
+        response.put("refresh_token", refreshJwt);
+        response.put("roles", roles);
+        response.put("userId", user.getId());
+
+        return response;
     }
 
     @Override

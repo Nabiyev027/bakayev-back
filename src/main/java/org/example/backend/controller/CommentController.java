@@ -6,6 +6,7 @@ import org.example.backend.dtoResponse.CommentHomeResDto;
 import org.example.backend.dtoResponse.CommentResDto;
 import org.example.backend.services.CommentService.CommentService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,7 +15,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/comment")
 @RequiredArgsConstructor
-@CrossOrigin
 public class CommentController {
     private final CommentService commentService;
 
@@ -28,6 +28,7 @@ public class CommentController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_MAIN_RECEPTION')")
     @PutMapping("/{id}")
     public ResponseEntity<?> allowComment(@PathVariable UUID id) {
         try {
@@ -38,6 +39,7 @@ public class CommentController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping
     public ResponseEntity<?> getComments() {
         try {
@@ -58,6 +60,7 @@ public class CommentController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteComment(@PathVariable UUID id) {
         try {

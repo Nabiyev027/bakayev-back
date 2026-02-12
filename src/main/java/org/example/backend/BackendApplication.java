@@ -13,9 +13,4 @@ public class BackendApplication {
         SpringApplication.run(BackendApplication.class, args);
     }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception{
-        return configuration.getAuthenticationManager();
-    }
-
 }

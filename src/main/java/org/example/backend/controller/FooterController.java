@@ -5,6 +5,7 @@ import org.example.backend.dto.FooterSectionDto;
 import org.example.backend.entity.FooterSection;
 import org.example.backend.services.footerService.FooterService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,6 +25,7 @@ public class FooterController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @PostMapping
     public ResponseEntity<?> postAndUpdateFooter(@RequestBody FooterSectionDto footerSectionDto){
         try {

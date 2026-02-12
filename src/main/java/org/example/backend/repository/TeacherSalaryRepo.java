@@ -15,29 +15,6 @@ import java.util.UUID;
 @Repository
 public interface TeacherSalaryRepo extends JpaRepository<TeacherSalary, UUID> {
 
-    // Barcha filiallar uchun
-    @Query("""
-                select s from TeacherSalary s
-                where s.salaryDate between :startDate and :endDate
-            """)
-    List<TeacherSalary> findByDateRange(
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
-
-    // Tanlangan filial uchun
-    @Query("""
-                select s from TeacherSalary s
-                join s.teacher t
-                join t.filials f
-                where f.id = :filialId
-                and s.salaryDate between :startDate and :endDate
-            """)
-    List<TeacherSalary> findByFilialAndDateRange(
-            @Param("filialId") UUID filialId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
 
     List<TeacherSalary> findAllByTeacherAndSalaryDateBetween(
             User teacher,
@@ -47,15 +24,17 @@ public interface TeacherSalaryRepo extends JpaRepository<TeacherSalary, UUID> {
 
 
     @Query("""
-            SELECT s FROM TeacherSalary s
-            WHERE s.teacher.id = :teacherId
-            AND s.salaryDate BETWEEN :start AND :end
-            """)
-    Optional<TeacherSalary> findByTeacherAndMonth(
+    SELECT s FROM TeacherSalary s
+    WHERE s.teacher.id = :teacherId
+    AND s.salaryDate BETWEEN :start AND :end
+    ORDER BY s.salaryDate DESC
+""")
+    List<TeacherSalary> findAllByTeacherAndMonth(
             @Param("teacherId") UUID teacherId,
             @Param("start") LocalDate start,
             @Param("end") LocalDate end
     );
+
 
     Optional<TeacherSalary> findTopByTeacherIdAndSalaryDateBeforeOrderBySalaryDateDesc(UUID id, LocalDate startDate);
 }

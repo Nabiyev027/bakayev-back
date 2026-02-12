@@ -7,6 +7,7 @@ import org.example.backend.dtoResponse.LessonStudentByGroupResDto;
 import org.example.backend.dtoResponse.LessonStudentResDto;
 import org.example.backend.services.lessonService.LessonService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,10 +17,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/lesson")
 @RequiredArgsConstructor
-@CrossOrigin
 public class LessonController {
     private final LessonService lessonService;
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN','ROLE_STUDENT')")
     @GetMapping("/{groupId}")
     public ResponseEntity<?> getGroupLessons(@PathVariable UUID groupId) {
         try {
@@ -31,6 +32,7 @@ public class LessonController {
 
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_STUDENT','ROLE_TEACHER','ROLE_ADMIN')")
     @GetMapping("/student/{studentId}")
     public ResponseEntity<?> getStudentLessonsByGroupAndUserId(@PathVariable UUID studentId, @RequestParam UUID groupId, @RequestParam String type) {
         try {
@@ -42,6 +44,7 @@ public class LessonController {
 
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_STUDENT','ROLE_ADMIN')")
     @GetMapping("/studentMarks")
     public ResponseEntity<?> getStudentLessonsByGroupAndUserId(@RequestParam UUID groupId, @RequestParam String type) {
         try {
@@ -52,6 +55,7 @@ public class LessonController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @PostMapping("/changeTime/{groupId}")
     public ResponseEntity<?> changeGroupLessonTime(@PathVariable UUID groupId, @RequestParam String startTime, @RequestParam String endTime ) {
         try {
@@ -62,6 +66,7 @@ public class LessonController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @PostMapping("/saveMarks/{groupId}")
     public ResponseEntity<?> markStudents(
             @PathVariable UUID groupId,
@@ -75,6 +80,7 @@ public class LessonController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteGroupLesson(@PathVariable UUID id) {
         try {

@@ -36,7 +36,7 @@ public class FilialServiceImpl implements FilialService {
 
     @Override
     public List<FilialDto> getFilials() {
-        List<Filial> all = filialRepo.findAll();
+        List<Filial> all = filialRepo.findAllByOrderByNameAsc();
         List<FilialDto> filialDtos = new ArrayList<>();
 
         all.forEach(filial -> {
@@ -46,8 +46,10 @@ public class FilialServiceImpl implements FilialService {
             filialDto.setLocation(filial.getLocation());
             filialDto.setDescription(filial.getDescription());
             filialDto.setImageUrl(filial.getImageUrl());
+
             List<Room> rooms = roomRepo.findByFilial(filial);
             List<RoomResDto> roomResDtos = new ArrayList<>();
+
             rooms.forEach(room -> {
                 RoomResDto roomResDto = new RoomResDto();
                 roomResDto.setId(room.getId());
@@ -55,12 +57,14 @@ public class FilialServiceImpl implements FilialService {
                 roomResDto.setNumber(room.getNumber());
                 roomResDtos.add(roomResDto);
             });
+
             filialDto.setRooms(roomResDtos);
             filialDtos.add(filialDto);
         });
 
         return filialDtos;
     }
+
 
     @Value("${google.maps.api-key}")
     private String apiKey;

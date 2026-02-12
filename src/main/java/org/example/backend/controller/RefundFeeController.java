@@ -6,6 +6,7 @@ import org.example.backend.dto.RefundDto;
 import org.example.backend.dtoResponse.RefundResDto;
 import org.example.backend.services.refundService.RefundService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
@@ -13,21 +14,22 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/refund")
 @RequiredArgsConstructor
-@CrossOrigin
 public class RefundFeeController {
 
     private final RefundService refundService;
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @PostMapping("/post")
     public ResponseEntity<?> postRefund(@RequestBody RefundDto refundDto) {
         try {
             refundService.addRefund(refundDto);
-            return ResponseEntity.ok("Thank you, you will be contacted.");
+            return ResponseEntity.ok("Refund fee added");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/get")
     public ResponseEntity<?> getRefund(@RequestParam String filialId, @RequestParam String teacherId, @RequestParam String groupId, @RequestParam String studentId) {
         try {
@@ -38,6 +40,7 @@ public class RefundFeeController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/delete/{refundId}")
     public ResponseEntity<?> deleteRefund(@PathVariable UUID refundId) {
         try {

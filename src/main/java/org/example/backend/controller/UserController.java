@@ -4,10 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.*;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.Role;
-import org.example.backend.entity.User;
-import org.example.backend.repository.UserRepo;
 import org.example.backend.services.userService.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,12 +16,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
-@CrossOrigin
 public class UserController {
     private final UserService userService;
-    private final UserRepo userRepo;
 
-
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_TEACHER','ROLE_STUDENT','ROLE_ADMIN')")
     @GetMapping("/discount/student/{id}")
     public ResponseEntity<?> getStudentDiscounts(@PathVariable UUID id) {
         try {
@@ -33,6 +30,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PostMapping("/discount/add/{id}")
     public ResponseEntity<?> addNewDiscount(@PathVariable UUID id, @RequestBody DiscountDto discountDto) {
         try {
@@ -43,6 +41,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/discount/update/{id}")
     public ResponseEntity<?> editStudentDiscount(@PathVariable UUID id, @RequestBody DiscountDto discountDto) {
         try {
@@ -53,6 +52,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @DeleteMapping("/discount/{id}")
     public ResponseEntity<?> deleteDiscount(@PathVariable UUID id) {
         try {
@@ -63,7 +63,8 @@ public class UserController {
         }
     }
 
-
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_TEACHER','ROLE_MAIN_RECEPTION'," +
+            "'ROLE_TEACHER','ROLE_STUDENT','ROLE_ADMIN')")
     @GetMapping("/getInfo/{id}")
     public ResponseEntity<?> getUserInfo(@PathVariable UUID id) {
         try {
@@ -74,6 +75,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_TEACHER','ROLE_TEACHER','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/studentInfo/{id}")
     public ResponseEntity<?> getStudent(@PathVariable UUID id) {
         try {
@@ -84,6 +86,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @PutMapping("/updateStatus/{id}")
     public ResponseEntity<?> updateStatus(@PathVariable UUID id, @RequestParam String status, @RequestParam UUID groupId) {
         try {
@@ -95,6 +98,7 @@ public class UserController {
     }
 
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN','ROLE_SUPER_ADMIN')")
     @PutMapping("/updateInfo/{id}")
     public ResponseEntity<?> updateUserInfo(@PathVariable UUID id,
                                             @RequestParam("firstName") String firstName,
@@ -110,6 +114,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_TEACHER','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/getRoles")
     public ResponseEntity<?> getRoles() {
         try {
@@ -120,6 +125,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/getEmpRoles")
     public ResponseEntity<?> getEmpRoles(){
         try {
@@ -130,6 +136,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/employer")
     public ResponseEntity<?> getEmployer(
             @RequestParam(required = false, defaultValue = "all") String filialId,
@@ -143,6 +150,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/teacher")
     public ResponseEntity<?> getTeachers() {
         try {
@@ -153,6 +161,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/teacher/{filialId}")
     public ResponseEntity<?> getTeachers(@PathVariable UUID filialId) {
         try {
@@ -163,24 +172,18 @@ public class UserController {
         }
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable UUID id) {
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_TEACHER','ROLE_STUDENT','ROLE_MAIN_RECEPTION','ROLE_SUPER_ADMIN','ROLE_ADMIN')")
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getUserById(@PathVariable UUID userId) {
         try {
-            User user = userRepo.findById(id)
-                    .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
-
-            UserReception userReception = new UserReception();
-            userReception.setFullName(user.getFirstName() + " " + user.getLastName());
-            userReception.setUsername(user.getUsername());
-            userReception.setPhone(user.getPhone());
-            userReception.setRoles(user.getRoles());
-
-            return ResponseEntity.ok(userReception);
+            UserReception userInfoByLogin = userService.getUserInfoByLogin(userId);
+            return ResponseEntity.ok(userInfoByLogin);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @GetMapping("/admins")
     public ResponseEntity<?> getTeachersWithData() {
         try {
@@ -191,7 +194,7 @@ public class UserController {
         }
     }
 
-
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/teachers")
     public ResponseEntity<?> getTeachersWithData(
             @RequestParam(required = false, defaultValue = "all") String filialId
@@ -204,6 +207,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_TEACHER','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/students")
     public ResponseEntity<?> getStudentsWithData(
             @RequestParam(required = false, defaultValue = "all") String filialId,
@@ -217,6 +221,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_TEACHER','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/student")
     public ResponseEntity<?> getStudentByGroup(@RequestParam UUID groupId){
         try {
@@ -227,6 +232,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/studentsForMessage")
     public ResponseEntity<?> getStudentsForMessage(@RequestParam UUID filialId, @RequestParam UUID groupId){
         try {
@@ -237,6 +243,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @PutMapping("/settings/{id}")
     public ResponseEntity<?> changePassword(@PathVariable UUID id, @RequestParam String oldPassword, @RequestParam String newPassword){
         try {
@@ -247,6 +254,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @PutMapping("/changePassword/{userId}")
     public ResponseEntity<?> changePasswordForAdmin(@PathVariable UUID userId, @RequestParam String newPassword){
         try {
@@ -257,6 +265,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_TEACHER','ROLE_MAIN_RECEPTION','ROLE_ADMIN','ROLE_SUPER_ADMIN')")
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable UUID id){
         try {

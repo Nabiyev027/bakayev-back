@@ -9,7 +9,6 @@ import java.io.*;
 
 @RestController
 @RequestMapping("/file")
-@CrossOrigin
 public class FileController {
     @GetMapping("/get")
     public void getFile(HttpServletResponse response, @RequestParam String path) throws IOException {

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface GroupService {
-    List<GroupsResDto> getGroupsWithData();
+    List<GroupsResDto> getGroupsWithData(String filialId);
 
     void deleteGroup(UUID id);
 
