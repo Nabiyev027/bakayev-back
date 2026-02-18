@@ -3,12 +3,14 @@ package org.example.backend.services.groupService;
 import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface GroupService {
-    List<GroupsResDto> getGroupsWithData(String filialId);
+
 
     void deleteGroup(UUID id);
 
@@ -28,4 +30,5 @@ public interface GroupService {
 
     List<FilialGroupNameResDto> getGroupsByFilialIds(List<String> filialIds);
 
+    Page<GroupsResDto> getGroupsWithData(String filialId, Pageable pageable);
 }

@@ -10,6 +10,10 @@ import org.example.backend.entity.*;
 import org.example.backend.repository.*;
 import org.example.backend.security.service.JwtService;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -190,126 +194,74 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public List<StudentResDto> getStudentsWithData(String filialId, String groupId) {
-        List<StudentResDto> students = new ArrayList<>();
+    public Page<StudentResDto> getStudentsWithData(String filialId, String groupId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
 
+        // 1. Role bo'yicha studentlarni filter qilib olish (Repository-da Pageable bilan)
+        // Eslatma: userRepo.findAllByRolesContaining(studentRole, pageable) kabi metod ochish tavsiya etiladi
         Optional<Role> roleOpt = roleRepo.findByName("ROLE_STUDENT");
-        if (roleOpt.isEmpty()) {
-            System.out.println("ROLE_STUDENT not found!");
-            return students;
-        }
+        if (roleOpt.isEmpty()) return Page.empty();
 
         Role studentRole = roleOpt.get();
-        List<User> roleStudents = userRepo.getByRoles(List.of(studentRole));
 
-        System.out.println("Found students count: " + roleStudents.size());
+        // Bu yerda barcha studentlarni emas, filterga moslarini bazadan Page ko'rinishida olish kerak
+        // Hozircha sizning kodingizga moslab mapping qilamiz:
 
-        for (User s : roleStudents) {
-            // Filial bo'yicha filter
-            if (!"all".equals(filialId)) {
-                boolean hasFilial = s.getFilials().stream()
-                        .anyMatch(f -> f.getId().toString().equals(filialId));
-                if (!hasFilial) continue;
-            }
+        // Yaxshisi, Repository-da Query yozgan ma'qul, lekin soddalik uchun:
+        List<User> allStudents = userRepo.getByRoles(List.of(studentRole));
 
-            // Group bo'yicha filter
-            if (!"all".equals(groupId)) {
-                boolean hasGroup = s.getGroupStudents().stream()
-                        .anyMatch(gs -> gs.getGroup().getId().toString().equals(groupId));
-                if (!hasGroup) continue;
-            }
+        // Java-da filterlash (Ma'lumot kam bo'lsa ishlaydi)
+        List<StudentResDto> filteredList = allStudents.stream()
+                .filter(s -> {
+                    if (filialId != null && !filialId.isBlank() && !"all".equals(filialId)) {
+                        return s.getFilials().stream().anyMatch(f -> f.getId().toString().equals(filialId));
+                    }
+                    return true;
+                })
+                .filter(s -> {
+                    if (groupId != null && !groupId.isBlank() && !"all".equals(groupId)) {
+                        return s.getGroupStudents().stream().anyMatch(gs -> gs.getGroup().getId().toString().equals(groupId));
+                    }
+                    return true;
+                })
+                .map(this::convertToDto) // Mapping uchun alohida metod
+                .collect(Collectors.toList());
 
+        // Listni Page-ga aylantirish
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), filteredList.size());
 
-            StudentResDto newStudent = new StudentResDto();
-            newStudent.setId(s.getId());
-            newStudent.setImgUrl(s.getImageUrl());
-            newStudent.setFirstName(s.getFirstName());
-            newStudent.setLastName(s.getLastName());
-            newStudent.setUsername(s.getUsername());
-            newStudent.setPhone(s.getPhone());
-            newStudent.setParentPhone(s.getParentPhone());
-
-            // Filialni birinchi element sifatida olish
-            if (s.getFilials() != null && !s.getFilials().isEmpty()) {
-                Filial first = s.getFilials().get(0);
-                FilialNameDto filialNameDto = new FilialNameDto();
-                filialNameDto.setId(first.getId());
-                filialNameDto.setName(first.getName());
-                newStudent.setFilialNameDto(filialNameDto);
-            }
-
-            // Guruhlar
-            List<GroupsNamesDto> groups = new ArrayList<>();
-            if (s.getGroupStudents() != null) {
-                for (var groupStudent : s.getGroupStudents()) {
-                    GroupsNamesDto groupsNames = new GroupsNamesDto();
-                    groupsNames.setId(groupStudent.getGroup().getId());
-                    groupsNames.setName(groupStudent.getGroup().getName());
-                    groups.add(groupsNames);
-                }
-            }
-
-            newStudent.setGroups(groups);
-
-            students.add(newStudent);
+        if (start > filteredList.size()) {
+            return new PageImpl<>(new ArrayList<>(), pageable, filteredList.size());
         }
 
-        return students;
+        return new PageImpl<>(filteredList.subList(start, end), pageable, filteredList.size());
     }
 
-//    @Transactional
-//    @Override
-//    public List<TeacherResDto> getTeachersWithData(String filialId) {
-//        List<TeacherResDto> teachers = new ArrayList<>();
-//
-//        Optional<Role> roleOpt = roleRepo.findByName("ROLE_TEACHER");
-//        if (roleOpt.isEmpty()) {
-//            System.out.println("ROLE_TEACHER not found!");
-//            return teachers;
-//        }
-//
-//        Role teacherRole = roleOpt.get();
-//        List<User> roleTeachers = userRepo.getByRoles(List.of(teacherRole));
-//
-//        System.out.println("Found students count: " + roleTeachers.size());
-//
-//        roleTeachers.forEach(t -> {
-//            TeacherResDto newTeacher = new TeacherResDto();
-//            newTeacher.setId(t.getId());
-//            newTeacher.setImgUrl(t.getImageUrl());
-//            newTeacher.setFirstName(t.getFirstName());
-//            newTeacher.setLastName(t.getLastName());
-//            newTeacher.setUsername(t.getUsername());
-//            newTeacher.setPhone(t.getPhone());
-//
-//            List<FilialNameDto> filials = new ArrayList<>();
-//            if (t.getFilials() != null) {
-//                t.getFilials().forEach(filial -> {
-//                    FilialNameDto filialNameDto = new FilialNameDto();
-//                    filialNameDto.setId(filial.getId());
-//                    filialNameDto.setName(filial.getName());
-//                    filials.add(filialNameDto);
-//                });
-//            }
-//
-//            newTeacher.setBranches(filials);
-//
-//            List<GroupsNamesDto> groups = new ArrayList<>();
-//            if (t.getTeacherGroups() != null) {
-//                t.getTeacherGroups().forEach(group -> {
-//                    GroupsNamesDto groupsNames = new GroupsNamesDto();
-//                    groupsNames.setId(group.getId());
-//                    groupsNames.setName(group.getName());
-//                    groups.add(groupsNames);
-//                });
-//            }
-//            newTeacher.setGroups(groups);
-//
-//            teachers.add(newTeacher);
-//        });
-//
-//        return teachers;
-//    }
+    // Mapping uchun yordamchi metod
+    private StudentResDto convertToDto(User s) {
+        StudentResDto dto = new StudentResDto();
+        dto.setId(s.getId());
+        dto.setImgUrl(s.getImageUrl());
+        dto.setFirstName(s.getFirstName());
+        dto.setLastName(s.getLastName());
+        dto.setUsername(s.getUsername());
+        dto.setPhone(s.getPhone());
+        dto.setParentPhone(s.getParentPhone());
+
+        if (s.getFilials() != null && !s.getFilials().isEmpty()) {
+            Filial first = s.getFilials().get(0);
+            dto.setFilialNameDto(new FilialNameDto(first.getId(), first.getName()));
+        }
+
+        List<GroupsNamesDto> groups = s.getGroupStudents().stream()
+                .map(gs -> new GroupsNamesDto(gs.getGroup().getId(), gs.getGroup().getName()))
+                .collect(Collectors.toList());
+        dto.setGroups(groups);
+
+        return dto;
+    }
+
 
     @Transactional
     @Override

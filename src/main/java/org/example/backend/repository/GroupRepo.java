@@ -5,6 +5,8 @@ import org.example.backend.entity.Filial;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.Room;
 import org.example.backend.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -48,4 +50,6 @@ public interface GroupRepo extends JpaRepository<Group, UUID> {
     List<Group> findByRoom(Room room);
 
     List<Group> findAllByDayTypeAndRoom(DayType dayType, Room room);
+
+    Page<Group> findByFilial(Filial filial, Pageable pageable);
 }

@@ -15,10 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.*;
 
 
 @Service
@@ -167,14 +164,17 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private void saveTransaction(Payment payment, int amount, String method) {
+
         PaymentTransaction pt = new PaymentTransaction();
         pt.setPayment(payment);
         pt.setAmount(amount);
         pt.setPaymentMethod(PaymentMethod.valueOf(method));
         pt.setTransactionDate(LocalDate.now());
-        paymentTransactionRepo.save(pt);
-    }
 
+        payment.getPaymentTransactions().add(pt);
+
+        paymentRepo.save(payment); // cascade ALL bor
+    }
 
 
     @Override
@@ -240,6 +240,7 @@ public class PaymentServiceImpl implements PaymentService {
                                             || t.getPaymentMethod().name().equalsIgnoreCase(paymentMethod)))
                             .forEach(payment -> {
                                 PaymentResDto dto = new PaymentResDto();
+                                dto.setId(payment.getId());
                                 dto.setFullName(student.getFirstName() + " " + student.getLastName());
                                 dto.setPaymentDate(payment.getDate());
                                 dto.setPaidAmount(payment.getPaidAmount());
@@ -253,6 +254,9 @@ public class PaymentServiceImpl implements PaymentService {
                                                 || t.getPaymentMethod().name().equalsIgnoreCase(paymentMethod))
                                         .map(t -> {
                                             PaymentTransactionResDto tr = new PaymentTransactionResDto();
+
+                                            // MANA SHU QATORNI QO'SHING:
+                                            tr.setId(t.getId());
                                             tr.setPaymentDate(t.getTransactionDate());
                                             tr.setPaidAmount(t.getAmount());
                                             tr.setPaymentMethod(t.getPaymentMethod().name());
@@ -300,6 +304,7 @@ public class PaymentServiceImpl implements PaymentService {
 
             // 🔹 Har bir Payment uchun yangi DTO
             PaymentResDto dto = new PaymentResDto();
+            dto.setId(payment.getId());
             dto.setFullName(user.getFirstName() + " " + user.getLastName());
             dto.setPaymentDate(payment.getDate());
             dto.setPaidAmount(payment.getPaidAmount());
@@ -314,6 +319,7 @@ public class PaymentServiceImpl implements PaymentService {
 
                     .map(t -> {
                         PaymentTransactionResDto tr = new PaymentTransactionResDto();
+                        tr.setId(t.getId());
                         tr.setPaymentDate(t.getTransactionDate());
                         tr.setPaidAmount(t.getAmount());
                         tr.setPaymentMethod(t.getPaymentMethod().name());
@@ -359,6 +365,7 @@ public class PaymentServiceImpl implements PaymentService {
 
             payment.getPaymentTransactions().forEach(pt -> {
                 PaymentTransactionResDto tr = new PaymentTransactionResDto();
+                tr.setId(pt.getId());
                 tr.setPaymentMethod(pt.getPaymentMethod().name());
                 tr.setPaidAmount(pt.getAmount());
                 tr.setPaymentDate(pt.getTransactionDate());
@@ -466,6 +473,261 @@ public class PaymentServiceImpl implements PaymentService {
         result.add(new PaymentAmountResDto((int) dailyCount, dailySum));
 
         return result;
+    }
+
+//    @Transactional
+//    @Override
+//    public void deletePayment(UUID paymentId) {
+//
+//        Payment payment = paymentRepo.findById(paymentId)
+//                .orElseThrow(() -> new RuntimeException("Payment not found"));
+//
+//        User student = payment.getStudent();
+//        LocalDate paymentDate = payment.getDate();
+//
+//        int paidAmount = payment.getPaidAmount() != null ? payment.getPaidAmount() : 0;
+//
+//        // ==========================
+//        // TRANSACTION LARNI O‘CHIRISH
+//        // ==========================
+//        List<PaymentTransaction> transactions =
+//                paymentTransactionRepo.findByPayment(payment);
+//
+//        paymentTransactionRepo.deleteAll(transactions);
+//
+//        // ==========================
+//        // QARZNI TO‘G‘RI HISOBLASH
+//        // ==========================
+//        PaymentCourseInfo pci = paymentCourseInfoRepo.findAll()
+//                .stream().findFirst()
+//                .orElseThrow(() -> new RuntimeException("Course info not found"));
+//
+//        int courseAmount = pci.getCoursePaymentAmount();
+//        int discountAmount = payment.getDiscountAmount() != null
+//                ? payment.getDiscountAmount()
+//                : 0;
+//
+//        int realAmount = Math.max(courseAmount - discountAmount, 0);
+//
+//        int debtAmount = realAmount - paidAmount;
+//
+//        if (realAmount > 0) {
+//
+//            Optional<Debts> existingDebt =
+//                    debtsRepo.findByStudentAndCreatedDate(student, paymentDate);
+//
+//            if (existingDebt.isPresent()) {
+//                Debts debt = existingDebt.get();
+//                debt.setAmount(realAmount); // 🔥 qo‘shmaymiz, to‘liq almashtiramiz
+//                debtsRepo.save(debt);
+//            } else {
+//                Debts debt = new Debts();
+//                debt.setStudent(student);
+//                debt.setAmount(realAmount);
+//                debt.setCreatedDate(paymentDate);
+//                debtsRepo.save(debt);
+//            }
+//        }
+//
+//
+//        // ==========================
+//        // PAYMENT NI O‘CHIRISH
+//        // ==========================
+//        paymentRepo.delete(payment);
+//    }
+
+    @Transactional
+    @Override
+    public void deletePayment(UUID paymentId) {
+
+        Payment payment = paymentRepo.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
+
+        User student = payment.getStudent();
+        LocalDate paymentDate = payment.getDate();
+
+        // 1️⃣ Transactionlarni o‘chiramiz
+        List<PaymentTransaction> transactions =
+                paymentTransactionRepo.findByPayment(payment);
+
+        paymentTransactionRepo.deleteAll(transactions);
+
+        // 2️⃣ Shu sanaga tegishli debtni o‘chiramiz
+        debtsRepo.findByStudentAndCreatedDate(student, paymentDate)
+                .ifPresent(debtsRepo::delete);
+
+        // 3️⃣ Paymentni o‘chiramiz
+        paymentRepo.delete(payment);
+    }
+
+
+//    @Transactional
+//    @Override
+//    public void deletePaymentTransaction(UUID transactionId) {
+//
+//        // ==========================
+//        // TRANSACTION TOPISH
+//        // ==========================
+//        PaymentTransaction transaction = paymentTransactionRepo.findById(transactionId)
+//                .orElseThrow(() -> new RuntimeException("Payment transaction not found"));
+//
+//        Payment payment = transaction.getPayment();
+//        User student = payment.getStudent();
+//        LocalDate paymentDate = payment.getDate();
+//
+//        // ==========================
+//        // TRANSACTION NI O‘CHIRISH
+//        // ==========================
+//        paymentTransactionRepo.delete(transaction);
+//        paymentTransactionRepo.flush();
+//
+//        // ==========================
+//        // QOLGAN TRANSACTIONLARNI OLISH
+//        // ==========================
+//        List<PaymentTransaction> remainingTransactions =
+//                paymentTransactionRepo.findByPayment(payment);
+//
+//        // ==========================
+//        // AGAR TRANSACTION QOLMAGAN BO‘LSA
+//        // ==========================
+//        if (remainingTransactions.isEmpty()) {
+//
+//            // Debt mavjud bo‘lsa o‘chiramiz
+//            debtsRepo.findByStudentAndCreatedDate(student, paymentDate)
+//                    .ifPresent(debtsRepo::delete);
+//
+//            // Paymentni ham o‘chiramiz
+//            paymentRepo.delete(payment);
+//
+//            return; // method tugaydi
+//        }
+//
+//        // ==========================
+//        // AKS HOLDA PAID NI QAYTA HISOBLAYMIZ
+//        // ==========================
+//        int newPaidAmount = remainingTransactions.stream()
+//                .mapToInt(PaymentTransaction::getAmount)
+//                .sum();
+//
+//        payment.setPaidAmount(newPaidAmount);
+//
+//        // ==========================
+//        // COURSE AMOUNT
+//        // ==========================
+//        PaymentCourseInfo pci = paymentCourseInfoRepo.findAll()
+//                .stream()
+//                .findFirst()
+//                .orElseThrow(() -> new RuntimeException("Course info not found"));
+//
+//        int courseAmount = pci.getCoursePaymentAmount();
+//        int discountAmount = payment.getDiscountAmount() != null
+//                ? payment.getDiscountAmount()
+//                : 0;
+//
+//        int realAmount = Math.max(courseAmount - discountAmount, 0);
+//
+//        // ==========================
+//        // STATUS UPDATE
+//        // ==========================
+//        if (newPaidAmount >= realAmount) {
+//            payment.setPaymentStatus(PaymentStatus.PAID);
+//        } else {
+//            payment.setPaymentStatus(PaymentStatus.PENDING);
+//        }
+//
+//        paymentRepo.save(payment);
+//
+//        // ==========================
+//        // DEBT QAYTA HISOBLASH
+//
+//        // ==========================
+//        int debtAmount = realAmount - newPaidAmount;
+//
+//        Optional<Debts> existingDebt =
+//                debtsRepo.findByStudentAndCreatedDate(student, paymentDate);
+//
+//        if (debtAmount > 0) {
+//            if (existingDebt.isPresent()) {
+//                existingDebt.get().setAmount(debtAmount);
+//            } else {
+//                Debts debt = new Debts();
+//                debt.setStudent(student);
+//                debt.setAmount(debtAmount);
+//                debt.setCreatedDate(paymentDate);
+//                debtsRepo.save(debt);
+//            }
+//        } else {
+//            existingDebt.ifPresent(debtsRepo::delete);
+//        }
+//    }
+
+    @Transactional
+    @Override
+    public void deletePaymentTransaction(UUID transactionId) {
+
+        PaymentTransaction transaction = paymentTransactionRepo.findById(transactionId)
+                .orElseThrow(() -> new RuntimeException("Payment transaction not found"));
+
+        Payment payment = transaction.getPayment();
+        User student = payment.getStudent();
+        LocalDate paymentDate = payment.getDate();
+
+        paymentTransactionRepo.delete(transaction);
+        paymentTransactionRepo.flush();
+
+        List<PaymentTransaction> remaining =
+                paymentTransactionRepo.findByPayment(payment);
+
+        if (remaining.isEmpty()) {
+
+            debtsRepo.findByStudentAndCreatedDate(student, paymentDate)
+                    .ifPresent(debtsRepo::delete);
+
+            paymentRepo.delete(payment);
+            return;
+        }
+
+        int newPaidAmount = remaining.stream()
+                .mapToInt(PaymentTransaction::getAmount)
+                .sum();
+
+        payment.setPaidAmount(newPaidAmount);
+
+        PaymentCourseInfo pci = paymentCourseInfoRepo.findAll()
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Course info not found"));
+
+        int realAmount = pci.getCoursePaymentAmount()
+                - (payment.getDiscountAmount() != null ? payment.getDiscountAmount() : 0);
+
+        int debtAmount = realAmount - newPaidAmount;
+
+        if (debtAmount > 0) {
+
+            Debts debt = debtsRepo
+                    .findByStudentAndCreatedDate(student, paymentDate)
+                    .orElseGet(() -> {
+                        Debts d = new Debts();
+                        d.setStudent(student);
+                        d.setCreatedDate(paymentDate);
+                        return d;
+                    });
+
+            debt.setAmount(debtAmount);
+            debtsRepo.save(debt);
+
+            payment.setPaymentStatus(PaymentStatus.PENDING);
+
+        } else {
+
+            debtsRepo.findByStudentAndCreatedDate(student, paymentDate)
+                    .ifPresent(debtsRepo::delete);
+
+            payment.setPaymentStatus(PaymentStatus.PAID);
+        }
+
+        paymentRepo.save(payment);
     }
 
 

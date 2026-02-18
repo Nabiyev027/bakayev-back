@@ -5,6 +5,7 @@ import org.example.backend.dto.*;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.Role;
 import org.example.backend.services.userService.UserService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -210,11 +211,14 @@ public class UserController {
     @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_TEACHER','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/students")
     public ResponseEntity<?> getStudentsWithData(
-            @RequestParam(required = false, defaultValue = "all") String filialId,
-            @RequestParam(required = false, defaultValue = "all") String groupId
+            @RequestParam(required = false) String filialId,
+            @RequestParam(required = false) String groupId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+
     ) {
         try {
-            List<StudentResDto> students = userService.getStudentsWithData(filialId, groupId);
+            Page<StudentResDto> students = userService.getStudentsWithData(filialId, groupId, page, size);
             return  ResponseEntity.ok(students);
         }catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -272,7 +276,7 @@ public class UserController {
             userService.deleteUser(id);
             return  ResponseEntity.ok("User deleted successfully");
         }catch (Exception e){
-            e.printStackTrace(); // yoki log.error(...);
+            e.printStackTrace();
             throw new RuntimeException("User deletion failed: " + e.getMessage());
         }
     }

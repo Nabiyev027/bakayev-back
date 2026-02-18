@@ -109,5 +109,26 @@ public class PaymentController {
     }
 
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
+    @DeleteMapping("/delete/{paymentId}")
+    public ResponseEntity<?> deletePayment(@PathVariable UUID paymentId) {
+        try {
+            paymentService.deletePayment(paymentId);
+            return ResponseEntity.ok("Deleted successfully");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
+    @DeleteMapping("/transaction/delete/{transactionId}")
+    public ResponseEntity<?> deletePaymentTransaction(@PathVariable UUID transactionId) {
+        try {
+            paymentService.deletePaymentTransaction(transactionId);
+            return ResponseEntity.ok("Transaction deleted successfully");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
 }

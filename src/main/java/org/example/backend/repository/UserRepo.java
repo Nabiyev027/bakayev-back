@@ -5,6 +5,8 @@ import org.example.backend.entity.Filial;
 import org.example.backend.entity.Group;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -46,6 +48,12 @@ public interface UserRepo extends JpaRepository<User, UUID> {
             """)
     List<User> findStudentsByFilialAndGroup(@Param("filial") Filial filial,
                                             @Param("group") Group group);
+
+    @Query("SELECT u FROM User u JOIN u.roles r JOIN u.filials f JOIN u.groupStudents gs " +
+            "WHERE r.name = 'ROLE_STUDENT' " +
+            "AND (:filialId IS NULL OR f.id = :filialId) " +
+            "AND (:groupId IS NULL OR gs.group.id = :groupId)")
+    Page<User> findStudentsByFilter(@Param("filialId") UUID filialId, @Param("groupId") UUID groupId, Pageable pageable);
 
 
     @Transactional(readOnly = true)

@@ -77,7 +77,7 @@ public class ReferenceController {
     }
 
     @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
-    @DeleteMapping("delete/{referenceId}")
+    @DeleteMapping("/delete/{referenceId}")
     public ResponseEntity<?> deleteRef(@PathVariable UUID referenceId) {
         try {
             referenceService.deleteReference(referenceId);

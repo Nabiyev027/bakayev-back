@@ -7,6 +7,8 @@ import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.*;
 import org.example.backend.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -28,22 +30,79 @@ public class GroupServiceImpl implements GroupService{
     private final AttendanceRepo attendanceRepo;
     private final TeacherSalaryRepo teacherSalaryRepo;
 
+//    @Transactional(readOnly = true)
+//    @Override
+//    public List<GroupsResDto> getGroupsWithData(String filialId) {
+//
+//        List<Group> groups;
+//        if (filialId == null || filialId.trim().isEmpty() || filialId.equalsIgnoreCase("all")) {
+//            groups = groupRepo.findAll(Sort.by(Sort.Direction.ASC, "name")); // name bo'yicha tartib
+//        } else {
+//            Filial filial = filialRepo.findById(UUID.fromString(filialId))
+//                    .orElseThrow(() -> new RuntimeException("Filial not found"));
+//
+//            groups = groupRepo.getGroupByFilial(filial, Sort.by(Sort.Direction.ASC, "name")); // agar getGroupByFilial Sort qabul qilsa
+//        }
+//
+//
+//        return groups.stream().map(group -> {
+//            GroupsResDto dto = new GroupsResDto();
+//            dto.setId(group.getId());
+//            dto.setName(group.getName());
+//            dto.setDegree(group.getDegree());
+//            dto.setDayType(group.getDayType().toString());
+//            dto.setStartTime(group.getStartTime());
+//            dto.setEndTime(group.getEndTime());
+//
+//            if (group.getRoom() != null) {
+//                RoomResDto roomDto = new RoomResDto();
+//                roomDto.setId(group.getRoom().getId());
+//                roomDto.setName(group.getRoom().getName());
+//                roomDto.setNumber(group.getRoom().getNumber());
+//                dto.setRoomDto(roomDto);
+//            }
+//
+//            dto.setStudentsNumber(
+//                    group.getGroupStudents() != null ? group.getGroupStudents().size() : 0
+//            );
+//
+//            List<TeacherNameDto> teacherDtos = group.getTeachers().stream()
+//                    .map(teacher -> {
+//                        TeacherNameDto tDto = new TeacherNameDto();
+//                        tDto.setId(teacher.getId());
+//                        tDto.setName(teacher.getFirstName() + " " + teacher.getLastName());
+//                        return tDto;
+//                    }).toList();
+//
+//            dto.setTeacherNameDtos(teacherDtos);
+//
+//            if (group.getFilial() != null) {
+//                FilialNameDto filialDto = new FilialNameDto();
+//                filialDto.setId(group.getFilial().getId());
+//                filialDto.setName(group.getFilial().getName());
+//                dto.setFilialNameDto(filialDto);
+//            }
+//
+//            return dto;
+//        }).toList();
+//    }
+
     @Transactional(readOnly = true)
     @Override
-    public List<GroupsResDto> getGroupsWithData(String filialId) {
+    public Page<GroupsResDto> getGroupsWithData(String filialId, Pageable pageable) {
 
-        List<Group> groups;
+        Page<Group> groups;
+
         if (filialId == null || filialId.trim().isEmpty() || filialId.equalsIgnoreCase("all")) {
-            groups = groupRepo.findAll(Sort.by(Sort.Direction.ASC, "name")); // name bo'yicha tartib
+            groups = groupRepo.findAll(pageable);
         } else {
             Filial filial = filialRepo.findById(UUID.fromString(filialId))
                     .orElseThrow(() -> new RuntimeException("Filial not found"));
 
-            groups = groupRepo.getGroupByFilial(filial, Sort.by(Sort.Direction.ASC, "name")); // agar getGroupByFilial Sort qabul qilsa
+            groups = groupRepo.findByFilial(filial, pageable);
         }
 
-
-        return groups.stream().map(group -> {
+        return groups.map(group -> {
             GroupsResDto dto = new GroupsResDto();
             dto.setId(group.getId());
             dto.setName(group.getName());
@@ -82,8 +141,9 @@ public class GroupServiceImpl implements GroupService{
             }
 
             return dto;
-        }).toList();
+        });
     }
+
 
 
     @Override

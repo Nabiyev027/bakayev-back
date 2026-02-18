@@ -5,6 +5,10 @@ import org.example.backend.dto.GroupDto;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.User;
 import org.example.backend.services.groupService.GroupService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,14 +26,20 @@ public class GroupController {
 
     @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/getAll")
-    public ResponseEntity<?> getAllGroups(@RequestParam String filialId) {
+    public ResponseEntity<?> getAllGroups(
+            @RequestParam String filialId,
+            @RequestParam int page,
+            @RequestParam int size
+    ) {
         try {
-            List<GroupsResDto> groups =  groupService.getGroupsWithData(filialId);
-            return  ResponseEntity.ok(groups);
-        }catch (Exception e){
+            Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+            Page<GroupsResDto> groups = groupService.getGroupsWithData(filialId, pageable);
+            return ResponseEntity.ok(groups);
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
 
     @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_RECEPTION','ROLE_TEACHER','ROLE_ADMIN')")
     @GetMapping("/{groupId}")

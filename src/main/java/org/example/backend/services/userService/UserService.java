@@ -4,6 +4,7 @@ import org.example.backend.dto.*;
 import org.example.backend.dtoResponse.*;
 import org.example.backend.entity.Role;
 import org.example.backend.entity.User;
+import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -34,7 +35,7 @@ public interface UserService {
 
     List<TeacherNameDto> getTeachers();
 
-    List<StudentResDto> getStudentsWithData(String filialId, String groupId);
+    Page<StudentResDto> getStudentsWithData(String filialId, String groupId, int page, int size);
 
     List<TeacherResDto> getTeachersWithData(String filialId);
 

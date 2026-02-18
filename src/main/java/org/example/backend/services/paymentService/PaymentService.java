@@ -24,4 +24,8 @@ public interface PaymentService {
     Integer getPaymentInfo(UUID id);
 
     List<PaymentAmountResDto> getPaymentAmounts(String id);
+
+    void deletePayment(UUID paymentId);
+
+    void deletePaymentTransaction(UUID transactionId);
 }
