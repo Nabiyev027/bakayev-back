@@ -13,6 +13,7 @@ public class EmployerResDto {
     private String firstName;
     private String lastName;
     private String phone;
+    private Boolean status;
     private List<FilialNameDto> filialNameDtos;
     private List<Role> roles;
     private String username;

@@ -115,6 +115,17 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
+    @PutMapping("/activate/{id}")
+    public ResponseEntity<?> activateUser(@PathVariable UUID id) {
+        try {
+            userService.activateUser(id);
+            return ResponseEntity.ok("Successfully");
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_TEACHER','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/getRoles")
     public ResponseEntity<?> getRoles() {
@@ -186,7 +197,7 @@ public class UserController {
 
     @PreAuthorize("hasAnyRole('ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @GetMapping("/admins")
-    public ResponseEntity<?> getTeachersWithData() {
+    public ResponseEntity<?> getAdminsWithData() {
         try {
             List<AdminResDto> admins = userService.getAdminsWithData();
             return  ResponseEntity.ok(admins);
@@ -235,6 +246,8 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+
 
     @PreAuthorize("hasAnyRole('ROLE_RECEPTION','ROLE_MAIN_RECEPTION','ROLE_ADMIN')")
     @GetMapping("/studentsForMessage")

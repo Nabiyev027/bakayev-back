@@ -78,5 +78,7 @@ public interface UserService {
     void deleteDiscount(UUID id);
 
     UserReception getUserInfoByLogin(UUID userId);
+
+    void activateUser(UUID id);
 }
 

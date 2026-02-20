@@ -27,4 +27,8 @@ public class TeacherSalaryPayment {
     @JoinColumn(name = "teacher_salary_id", nullable = false)
     private TeacherSalary teacherSalary;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = false)
+    private Group group;
+
 }

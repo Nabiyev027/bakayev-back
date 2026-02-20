@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,12 +25,14 @@ public class SalaryServiceImpl implements SalaryService {
     private final TeacherSalaryPaymentRepo teacherSalaryPaymentRepo;
     private final PaymentCourseInfoRepo paymentCourseInfoRepo;
     private final ReceptionSalaryPaymentRepo receptionSalaryPaymentRepo;
+    private final GroupRepo groupRepo;
 
 
     @Override
     @Transactional
     public List<?> getSalaries(String filialId, String role, Integer year, Integer month) {
 
+        // ⚠ Agar month 0-based kelmasa (1-12 bo‘lsa) +1 ni olib tashlang
         LocalDate startDate = LocalDate.of(year, month + 1, 1);
         LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
 
@@ -57,23 +60,14 @@ public class SalaryServiceImpl implements SalaryService {
                 TeacherSalary salary;
 
                 if (!salaries.isEmpty()) {
-                    salary = salaries.get(0); // ORDER BY DESC bo‘lsa – eng oxirgisi
+                    salary = salaries.get(0);
                 } else {
-                    salary = new TeacherSalary();
-                    salary.setTeacher(teacher);
 
                     salary = new TeacherSalary();
                     salary.setTeacher(teacher);
-
-                    if (teacher.getTeacherGroups() != null && !teacher.getTeacherGroups().isEmpty()) {
-                        salary.setGroup(teacher.getTeacherGroups().get(0));
-                    } else {
-                        salary.setGroup(null);
-                    }
-
                     salary.setSalaryDate(startDate);
 
-// 🔥 O‘tgan oyning summasini ko‘chiramiz
+                    // 🔥 O‘tgan oyning ma’lumotlarini ko‘chiramiz
                     Optional<TeacherSalary> lastSalary =
                             teacherSalaryRepo
                                     .findTopByTeacherIdAndSalaryDateBeforeOrderBySalaryDateDesc(
@@ -85,15 +79,12 @@ public class SalaryServiceImpl implements SalaryService {
                             lastSalary.map(TeacherSalary::getTotalAmount).orElse(0)
                     );
 
-// percentage allaqachon bor edi
                     salary.setPercentage(
                             lastSalary.map(TeacherSalary::getPercentage).orElse(0)
                     );
 
                     salary = teacherSalaryRepo.save(salary);
-
                 }
-
 
                 SalaryTeacherRes dto = new SalaryTeacherRes();
                 dto.setId(salary.getId());
@@ -103,12 +94,16 @@ public class SalaryServiceImpl implements SalaryService {
                 );
                 dto.setDate(salary.getSalaryDate());
 
-                // 👇 Guruh nomini frontendga jo‘natamiz
-                if (salary.getGroup() != null) {
-                    dto.setGroupNames(List.of(salary.getGroup().getName()));
-                } else {
-                    dto.setGroupNames(Collections.emptyList());
-                }
+                // 🔥 Group nomlarini paymentlardan yig‘amiz
+                Set<String> groupNames = salary.getPayments() == null
+                        ? Collections.emptySet()
+                        : salary.getPayments().stream()
+                        .map(TeacherSalaryPayment::getGroup)
+                        .filter(Objects::nonNull)
+                        .map(Group::getName)
+                        .collect(Collectors.toSet());
+
+                dto.setGroupNames(new ArrayList<>(groupNames));
 
                 result.add(dto);
             }
@@ -140,11 +135,11 @@ public class SalaryServiceImpl implements SalaryService {
                 if (optionalSalary.isPresent()) {
                     salary = optionalSalary.get();
                 } else {
+
                     salary = new ReceptionSalary();
                     salary.setReceptionist(reception);
                     salary.setSalaryDate(startDate);
 
-                    // 🔥 O‘tgan oyning oxirgi salary ni olamiz
                     Optional<ReceptionSalary> lastSalary =
                             receptionSalaryRepo
                                     .findTopByReceptionistIdAndSalaryDateBeforeOrderBySalaryDateDesc(
@@ -166,12 +161,12 @@ public class SalaryServiceImpl implements SalaryService {
                 );
                 dto.setSalaryAmount(salary.getSalaryAmount());
 
-                double paidAmount = 0;
-                if (salary.getPayments() != null && !salary.getPayments().isEmpty()) {
-                    paidAmount = salary.getPayments().stream()
-                            .mapToDouble(ReceptionSalaryPayment::getAmount)
-                            .sum();
-                }
+                double paidAmount = salary.getPayments() == null
+                        ? 0
+                        : salary.getPayments().stream()
+                        .mapToDouble(ReceptionSalaryPayment::getAmount)
+                        .sum();
+
                 dto.setPaidAmount(paidAmount);
                 dto.setDate(salary.getSalaryDate());
 
@@ -181,7 +176,6 @@ public class SalaryServiceImpl implements SalaryService {
             return result;
         }
 
-
         return Collections.emptyList();
     }
 
@@ -190,25 +184,26 @@ public class SalaryServiceImpl implements SalaryService {
     @Transactional
     @Override
     public List<SalaryPaymentResDto> getSalPayments(UUID salaryId) {
-        List<SalaryPaymentResDto> payments = new ArrayList<>();
 
         TeacherSalary salary = teacherSalaryRepo.findById(salaryId)
                 .orElseThrow(() -> new RuntimeException("Salary not found"));
 
-        String groupName = salary.getGroup() != null
-                ? salary.getGroup().getName()
-                : null; // yoki "Noma'lum guruh"
+        return salary.getPayments().stream()
+                .map(p -> {
+                    SalaryPaymentResDto dto = new SalaryPaymentResDto();
+                    dto.setId(p.getId());
+                    dto.setDate(p.getPaymentDate());
+                    dto.setAmount(p.getAmount());
 
-        for (TeacherSalaryPayment p : salary.getPayments()) {
-            SalaryPaymentResDto dto = new SalaryPaymentResDto();
-            dto.setId(p.getId());
-            dto.setDate(p.getPaymentDate());
-            dto.setAmount(p.getAmount());
-            dto.setGroupName(groupName);
-            payments.add(dto);
-        }
+                    String groupName = p.getGroup() != null
+                            ? p.getGroup().getName()
+                            : null;
 
-        return payments;
+                    dto.setGroupName(groupName);
+
+                    return dto;
+                })
+                .toList();
     }
 
 
@@ -233,8 +228,6 @@ public class SalaryServiceImpl implements SalaryService {
                         endDate
                 );
 
-        List<SalaryByGroupInfoResDto> result = new ArrayList<>();
-
         PaymentCourseInfo paymentInfo = paymentCourseInfoRepo.findAll()
                 .stream()
                 .findFirst()
@@ -242,65 +235,55 @@ public class SalaryServiceImpl implements SalaryService {
 
         Integer coursePaymentAmount = paymentInfo.getCoursePaymentAmount();
 
+        List<SalaryByGroupInfoResDto> result = new ArrayList<>();
+
         for (TeacherSalary salary : salaries) {
 
-            Group group = salary.getGroup();
+            Integer percentage = salary.getPercentage() != null
+                    ? salary.getPercentage()
+                    : 0;
 
-            // 🔒 AGAR GROUP YO‘Q BO‘LSA → O‘TKAZIB YUBORAMIZ
-            if (group == null) {
+            // 🔥 Salary ichidagi barcha grouplarni aniqlaymiz
+            Set<Group> groups = salary.getPayments().stream()
+                    .map(TeacherSalaryPayment::getGroup)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            for (Group group : groups) {
+
+                // 🔥 Paid amount hisoblash
+                Integer paidAmount = salary.getPayments().stream()
+                        .filter(p -> group.equals(p.getGroup()))
+                        .map(TeacherSalaryPayment::getAmount)
+                        .reduce(0, Integer::sum);
+
+                // 🔥 Active studentlar soni
+                int numStudents = (int) group.getGroupStudents().stream()
+                        .filter(gs -> gs.getStatus() == GroupStudentStatus.ACTIVE)
+                        .count();
+
+                int perStudentAmount = (coursePaymentAmount * percentage) / 100;
+                Integer mustPaid = perStudentAmount * numStudents;
+
                 SalaryByGroupInfoResDto dto = new SalaryByGroupInfoResDto();
                 dto.setId(salary.getId());
-                dto.setGroupName(null); // yoki "Guruh yo‘q"
-                dto.setMustPaid(0);
-                dto.setPercentage(salary.getPercentage());
-                dto.setAmount(0);
+                dto.setGroupName(group.getName());
+                dto.setPercentage(percentage);
+                dto.setMustPaid(mustPaid);
+                dto.setAmount(paidAmount);
                 dto.setDate(salary.getSalaryDate());
+
                 result.add(dto);
-                continue;
             }
-
-            Integer paidAmount =
-                    teacherSalaryPaymentRepo
-                            .sumAmountByTeacherSalaryAndGroup(salary, group);
-
-            if (paidAmount == null) {
-                paidAmount = 0;
-            }
-
-            Integer percentage = salary.getPercentage();
-            if (percentage == null) {
-                percentage = 0; // yoki 100
-            }
-
-            int numStudents = (int) group.getGroupStudents().stream()
-                    .filter(gs -> gs.getStatus() == GroupStudentStatus.ACTIVE)
-                    .count();
-
-// 1 studentdan olinadigan summa
-            int perStudentAmount = (coursePaymentAmount * percentage) / 100;
-
-// O‘qituvchining umumiy olishi kerak bo‘lgan summa
-            Integer mustPaid = perStudentAmount * numStudents;
-
-            SalaryByGroupInfoResDto dto = new SalaryByGroupInfoResDto();
-            dto.setMustPaid(mustPaid);
-            dto.setId(salary.getId());
-            dto.setGroupName(group.getName());
-            dto.setPercentage(salary.getPercentage());
-            dto.setAmount(paidAmount);
-            dto.setDate(salary.getSalaryDate());
-
-            result.add(dto);
         }
 
         return result;
     }
 
 
-
     @Transactional
     @Override
-    public void addSalaryPayment(UUID salaryId,UUID groupId,Integer amount) {
+    public void addSalaryPayment(UUID salaryId, UUID groupId, Integer amount) {
 
         if (amount == null || amount <= 0) {
             throw new IllegalArgumentException("Amount must be greater than 0");
@@ -309,10 +292,15 @@ public class SalaryServiceImpl implements SalaryService {
         TeacherSalary salary = teacherSalaryRepo.findById(salaryId)
                 .orElseThrow(() -> new RuntimeException("Teacher salary not found"));
 
+        Group group = groupRepo.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
         TeacherSalaryPayment payment = new TeacherSalaryPayment();
         payment.setPaymentDate(LocalDate.now());
         payment.setAmount(amount);
         payment.setTeacherSalary(salary);
+        payment.setGroup(group); // 🔥 endi to‘g‘ri
+
         teacherSalaryPaymentRepo.save(payment);
     }
 

@@ -26,10 +26,6 @@ public class TeacherSalary {
     @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id") // qo‘shimcha: qaysi guruh uchun salary
-    private Group group;
-
     @Column(nullable = false)
     private Integer percentage = 0;
 

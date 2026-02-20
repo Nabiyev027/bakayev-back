@@ -48,6 +48,7 @@ public class UserServiceImpl implements UserService {
     private final TeacherSalaryRepo teacherSalaryRepo;
     private final ReceptionSalaryRepo receptionSalaryRepo;
     private final PaymentCourseInfoRepo paymentCourseInfoRepo;
+    private final TeacherSalaryPaymentRepo teacherSalaryPaymentRepo;
 
     @Override
     @Transactional
@@ -131,16 +132,32 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        // Teacher salary (group may be optional)
+
+        // Teacher salary (group is now in payment, not in salary)
         if ("ROLE_TEACHER".equals(roleEntity.getName())) {
             TeacherSalary salary = new TeacherSalary();
             salary.setTeacher(savedUser);
-            if (group != null) {
-                salary.setGroup(group); // agar group tanlangan bo‘lsa
-            }
             salary.setSalaryDate(LocalDate.now());
+
+            // ⚠ group endi salaryda emas → bu qatorni olib tashlash
+            // if (group != null) {
+            //     salary.setGroup(group);
+            // }
+
             teacherSalaryRepo.save(salary);
+
+            // Agar darhol payment yaratmoqchi bo‘lsangiz
+            if (group != null) {
+                TeacherSalaryPayment payment = new TeacherSalaryPayment();
+                payment.setTeacherSalary(salary);
+                payment.setGroup(group);
+                payment.setPaymentDate(LocalDate.now());
+                payment.setAmount(0); // default, keyin update qilinadi
+                teacherSalaryPaymentRepo.save(payment);
+            }
         }
+
+
 
 
         // 🔟 Reception salary
@@ -269,23 +286,24 @@ public class UserServiceImpl implements UserService {
         List<TeacherResDto> teachers = new ArrayList<>();
 
         // ROLE_TEACHER topilmasa bo'sh qaytamiz
-        Role teacherRole = roleRepo.findByName("ROLE_TEACHER")
-                .orElse(null);
+        Role teacherRole = roleRepo.findByName("ROLE_TEACHER").orElse(null);
         if (teacherRole == null) return teachers;
 
-        // Teacher larni olish
+        // Barcha o'qituvchi rolidagilarni olish
         List<User> roleTeachers = userRepo.getByRoles(List.of(teacherRole));
 
-        // Agar filialId = all bo'lsa filtrlamaymiz
-        if (!filialId.equals("all")) {
-            roleTeachers = roleTeachers.stream()
-                    .filter(t -> t.getFilials() != null &&
-                            t.getFilials().stream().anyMatch(f -> f.getId().toString().equals(filialId)))
-                    .toList();
-        }
+        // Filterlash: Status true bo'lishi VA (filialId "all" bo'lishi yoki mos kelishi)
+        List<User> filteredTeachers = roleTeachers.stream()
+                .filter(t -> Boolean.TRUE.equals(t.isStatus())) // Faqat status true bo'lganlar
+                .filter(t -> {
+                    if ("all".equals(filialId)) return true; // Hamma filiallar bo'lsa filterlamaymiz
+                    return t.getFilials() != null &&
+                            t.getFilials().stream().anyMatch(f -> f.getId().toString().equals(filialId));
+                })
+                .toList();
 
-        // Teacherlarni DTO ga o‘girish
-        for (User t : roleTeachers) {
+        // DTO ga o'girish
+        for (User t : filteredTeachers) {
             TeacherResDto dto = new TeacherResDto();
             dto.setId(t.getId());
             dto.setImgUrl(t.getImageUrl());
@@ -294,31 +312,26 @@ public class UserServiceImpl implements UserService {
             dto.setUsername(t.getUsername());
             dto.setPhone(t.getPhone());
 
-            // Filiallar
-            List<FilialNameDto> filials = new ArrayList<>();
-
-            if (t.getFilials() != null && !t.getFilials().isEmpty()) {
-                for (Filial f : t.getFilials()) {
-                    FilialNameDto filialNameDto = new FilialNameDto();
-                    filialNameDto.setId(f.getId());
-                    filialNameDto.setName(f.getName());
-                    filials.add(filialNameDto);
-                }
-            }
+            // Filiallar (faqat o'sha o'qituvchiga tegishlilari)
+            List<FilialNameDto> filials = t.getFilials() != null ? t.getFilials().stream()
+                    .map(f -> {
+                        FilialNameDto fDto = new FilialNameDto();
+                        fDto.setId(f.getId());
+                        fDto.setName(f.getName());
+                        return fDto;
+                    }).toList() : new ArrayList<>();
 
             dto.setBranches(filials);
 
             // Guruhlar
-            List<GroupsNamesDto> groups = new ArrayList<>();
-            if (t.getTeacherGroups() != null) {
+            List<GroupsNamesDto> groups = t.getTeacherGroups() != null ? t.getTeacherGroups().stream()
+                    .map(g -> {
+                        GroupsNamesDto gDto = new GroupsNamesDto();
+                        gDto.setId(g.getId());
+                        gDto.setName(g.getName());
+                        return gDto;
+                    }).toList() : new ArrayList<>();
 
-                for (var group : t.getTeacherGroups()) {
-                    GroupsNamesDto groupsNames = new GroupsNamesDto();
-                    groupsNames.setId(group.getId());
-                    groupsNames.setName(group.getName());
-                    groups.add(groupsNames);
-                }
-            }
             dto.setGroups(groups);
 
             teachers.add(dto);
@@ -345,60 +358,61 @@ public class UserServiceImpl implements UserService {
     @Transactional
     @Override
     public List<EmployerResDto> getEmployers(String filialId, String roleId) {
-        List<EmployerResDto> employers = new ArrayList<>();
 
-        userRepo.findAll().forEach(user -> {
+        return userRepo.findAll()
+                .stream()
 
-            // 🔹 STATUS = true bo‘lmaganlarni o'tkazib yuboramiz
-            if (!user.isStatus()) return;
+                // 🔹 ROLE_STUDENT bo‘lsa – skip
+                .filter(user -> user.getRoles().stream()
+                        .noneMatch(r -> r.getName().equals("ROLE_STUDENT")))
 
-            // 1) ROLE_STUDENT bo'lsa – SKIP
-            if (user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_STUDENT"))) return;
+                // 🔹 ROLE_SUPER_ADMIN bo‘lsa – skip
+                .filter(user -> user.getRoles().stream()
+                        .noneMatch(r -> r.getName().equals("ROLE_SUPER_ADMIN")))
 
-            // 1.1) ROLE_SUPER_ADMIN bo'lsa – SKIP
-            if (user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_SUPER_ADMIN"))) return;
+                // 🔹 roleId filter
+                .filter(user -> roleId.equals("all") ||
+                        user.getRoles().stream()
+                                .anyMatch(r -> r.getId().toString().equals(roleId)))
 
-            // 2) roleId = all emas bo'lsa filtr qilamiz
-            if (!roleId.equals("all")) {
-                boolean hasRole = user.getRoles().stream()
-                        .anyMatch(r -> r.getId().toString().equals(roleId));
-                if (!hasRole) return;
-            }
+                // 🔹 filialId filter
+                .filter(user -> filialId.equals("all") ||
+                        user.getFilials().stream()
+                                .anyMatch(f -> f.getId().toString().equals(filialId)))
 
-            // 3) filialId = all emas bo'lsa filtr qilamiz
-            if (!filialId.equals("all")) {
-                boolean hasFilial = user.getFilials().stream()
-                        .anyMatch(f -> f.getId().toString().equals(filialId));
-                if (!hasFilial) return;
-            }
+                // 🔥 SORT (asosiy qism)
+                .sorted(Comparator
+                        .comparing(User::isStatus).reversed()  // true lar oldinda
+                        .thenComparing(User::getFirstName, String.CASE_INSENSITIVE_ORDER))
 
-            // DTO to'ldiramiz
-            EmployerResDto employer = new EmployerResDto();
-            employer.setId(user.getId());
-            employer.setImgUrl(user.getImageUrl());
-            employer.setFirstName(user.getFirstName());
-            employer.setLastName(user.getLastName());
-            employer.setUsername(user.getUsername());
-            employer.setPhone(user.getPhone());
-            employer.setRoles(user.getRoles());
+                // 🔹 DTO map
+                .map(user -> {
+                    EmployerResDto employer = new EmployerResDto();
+                    employer.setId(user.getId());
+                    employer.setStatus(user.isStatus());
+                    employer.setImgUrl(user.getImageUrl());
+                    employer.setFirstName(user.getFirstName());
+                    employer.setLastName(user.getLastName());
+                    employer.setUsername(user.getUsername());
+                    employer.setPhone(user.getPhone());
+                    employer.setRoles(user.getRoles());
 
-            // Filial name dto lar
-            List<FilialNameDto> filialNameDtos = new ArrayList<>();
-            if (user.getFilials() != null) {
-                user.getFilials().forEach(filial -> {
-                    FilialNameDto dto = new FilialNameDto();
-                    dto.setId(filial.getId());
-                    dto.setName(filial.getName());
-                    filialNameDtos.add(dto);
-                });
-            }
-            employer.setFilialNameDtos(filialNameDtos);
+                    List<FilialNameDto> filialNameDtos = new ArrayList<>();
+                    if (user.getFilials() != null) {
+                        user.getFilials().forEach(filial -> {
+                            FilialNameDto dto = new FilialNameDto();
+                            dto.setId(filial.getId());
+                            dto.setName(filial.getName());
+                            filialNameDtos.add(dto);
+                        });
+                    }
+                    employer.setFilialNameDtos(filialNameDtos);
 
-            employers.add(employer);
-        });
-
-        return employers;
+                    return employer;
+                })
+                .toList();
     }
+
 
 
     @Transactional
@@ -938,6 +952,14 @@ public class UserServiceImpl implements UserService {
         userReception.setPhone(user.getPhone());
         userReception.setRoles(user.getRoles());
         return userReception;
+    }
+
+    @Override
+    public void activateUser(UUID id) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found by userId: " + id));
+        user.setStatus(!user.isStatus());
+        userRepo.save(user);
     }
 
 
