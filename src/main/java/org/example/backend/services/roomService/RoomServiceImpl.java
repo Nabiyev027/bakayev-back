@@ -65,12 +65,16 @@ public class RoomServiceImpl implements RoomService {
     public List<GroupRoomResDto> getRoomsInfo(String filialId, String dayType) {
 
         List<GroupRoomResDto> all = new ArrayList<>();
-
         List<Room> rooms;
 
-
-        Filial filial = filialRepo.findById(UUID.fromString(filialId)).get();
+        if ("all".equalsIgnoreCase(filialId)) {
+            // barcha filiallardan barcha xonalarni olish
+            rooms = roomRepo.findAll();  // agar kerak bo‘lsa join fetch bilan
+        } else {
+            Filial filial = filialRepo.findById(UUID.fromString(filialId))
+                    .orElseThrow(() -> new RuntimeException("Filial not found"));
             rooms = roomRepo.findByFilial(filial);
+        }
 
         for (Room room : rooms) {
             GroupRoomResDto roomDto = new GroupRoomResDto();
@@ -98,7 +102,6 @@ public class RoomServiceImpl implements RoomService {
                 });
 
                 info.setTeacherNameDtos(teacherNames);
-
                 info.setDayType(group.getDayType().name());
                 info.setStartTime(group.getStartTime().toString());
                 info.setEndTime(group.getEndTime().toString());

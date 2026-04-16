@@ -133,31 +133,18 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        // Teacher salary (group is now in payment, not in salary)
+        // Teacher salary 
         if ("ROLE_TEACHER".equals(roleEntity.getName())) {
-            TeacherSalary salary = new TeacherSalary();
-            salary.setTeacher(savedUser);
-            salary.setSalaryDate(LocalDate.now());
-
-            // ⚠ group endi salaryda emas → bu qatorni olib tashlash
-            // if (group != null) {
-            //     salary.setGroup(group);
-            // }
-
-            teacherSalaryRepo.save(salary);
-
-            // Agar darhol payment yaratmoqchi bo‘lsangiz
             if (group != null) {
-                TeacherSalaryPayment payment = new TeacherSalaryPayment();
-                payment.setTeacherSalary(salary);
-                payment.setGroup(group);
-                payment.setPaymentDate(LocalDate.now());
-                payment.setAmount(0); // default, keyin update qilinadi
-                teacherSalaryPaymentRepo.save(payment);
+                TeacherSalary salary = new TeacherSalary();
+                salary.setTeacher(savedUser);
+                salary.setGroup(group);
+                salary.setSalaryDate(LocalDate.now());
+                salary.setPercentage(teacherSalary != null ? teacherSalary : 0);
+                salary.setTotalAmount(0); // Boshlang'ich qiymat
+                teacherSalaryRepo.save(salary);
             }
         }
-
-
 
 
         // 🔟 Reception salary
@@ -209,50 +196,27 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public Page<StudentResDto> getStudentsWithData(String filialId, String groupId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
 
-        // 1. Role bo'yicha studentlarni filter qilib olish (Repository-da Pageable bilan)
-        // Eslatma: userRepo.findAllByRolesContaining(studentRole, pageable) kabi metod ochish tavsiya etiladi
-        Optional<Role> roleOpt = roleRepo.findByName("ROLE_STUDENT");
-        if (roleOpt.isEmpty()) return Page.empty();
-
-        Role studentRole = roleOpt.get();
-
-        // Bu yerda barcha studentlarni emas, filterga moslarini bazadan Page ko'rinishida olish kerak
-        // Hozircha sizning kodingizga moslab mapping qilamiz:
-
-        // Yaxshisi, Repository-da Query yozgan ma'qul, lekin soddalik uchun:
-        List<User> allStudents = userRepo.getByRoles(List.of(studentRole));
-
-        // Java-da filterlash (Ma'lumot kam bo'lsa ishlaydi)
-        List<StudentResDto> filteredList = allStudents.stream()
-                .filter(s -> {
-                    if (filialId != null && !filialId.isBlank() && !"all".equals(filialId)) {
-                        return s.getFilials().stream().anyMatch(f -> f.getId().toString().equals(filialId));
-                    }
-                    return true;
-                })
-                .filter(s -> {
-                    if (groupId != null && !groupId.isBlank() && !"all".equals(groupId)) {
-                        return s.getGroupStudents().stream().anyMatch(gs -> gs.getGroup().getId().toString().equals(groupId));
-                    }
-                    return true;
-                })
-                .map(this::convertToDto) // Mapping uchun alohida metod
-                .collect(Collectors.toList());
-
-        // Listni Page-ga aylantirish
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), filteredList.size());
-
-        if (start > filteredList.size()) {
-            return new PageImpl<>(new ArrayList<>(), pageable, filteredList.size());
+        // Filial ID ni tekshirish
+        UUID fId = null;
+        if (filialId != null && !filialId.isBlank() && !"all".equalsIgnoreCase(filialId)) {
+            fId = UUID.fromString(filialId);
         }
 
-        return new PageImpl<>(filteredList.subList(start, end), pageable, filteredList.size());
+        // Group ID ni tekshirish
+        UUID gId = null;
+        if (groupId != null && !groupId.isBlank() && !"all".equalsIgnoreCase(groupId)) {
+            gId = UUID.fromString(groupId);
+        }
+
+        // Repository orqali ma'lumotni olish
+        Page<User> studentPage = userRepo.findStudentsByFilter(fId, gId, pageable);
+
+        return studentPage.map(this::convertToDto);
     }
 
     // Mapping uchun yordamchi metod

@@ -12,5 +12,6 @@ public class SalaryTeacherRes {
     private UUID teacherId;
     private String fullName;
     private List<String> groupNames;
+    private Integer totalAmount;
     private LocalDate date;
 }

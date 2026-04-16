@@ -29,63 +29,7 @@ public class GroupServiceImpl implements GroupService{
     private final GroupStudentRepo groupStudentRepo;
     private final AttendanceRepo attendanceRepo;
     private final TeacherSalaryRepo teacherSalaryRepo;
-
-//    @Transactional(readOnly = true)
-//    @Override
-//    public List<GroupsResDto> getGroupsWithData(String filialId) {
-//
-//        List<Group> groups;
-//        if (filialId == null || filialId.trim().isEmpty() || filialId.equalsIgnoreCase("all")) {
-//            groups = groupRepo.findAll(Sort.by(Sort.Direction.ASC, "name")); // name bo'yicha tartib
-//        } else {
-//            Filial filial = filialRepo.findById(UUID.fromString(filialId))
-//                    .orElseThrow(() -> new RuntimeException("Filial not found"));
-//
-//            groups = groupRepo.getGroupByFilial(filial, Sort.by(Sort.Direction.ASC, "name")); // agar getGroupByFilial Sort qabul qilsa
-//        }
-//
-//
-//        return groups.stream().map(group -> {
-//            GroupsResDto dto = new GroupsResDto();
-//            dto.setId(group.getId());
-//            dto.setName(group.getName());
-//            dto.setDegree(group.getDegree());
-//            dto.setDayType(group.getDayType().toString());
-//            dto.setStartTime(group.getStartTime());
-//            dto.setEndTime(group.getEndTime());
-//
-//            if (group.getRoom() != null) {
-//                RoomResDto roomDto = new RoomResDto();
-//                roomDto.setId(group.getRoom().getId());
-//                roomDto.setName(group.getRoom().getName());
-//                roomDto.setNumber(group.getRoom().getNumber());
-//                dto.setRoomDto(roomDto);
-//            }
-//
-//            dto.setStudentsNumber(
-//                    group.getGroupStudents() != null ? group.getGroupStudents().size() : 0
-//            );
-//
-//            List<TeacherNameDto> teacherDtos = group.getTeachers().stream()
-//                    .map(teacher -> {
-//                        TeacherNameDto tDto = new TeacherNameDto();
-//                        tDto.setId(teacher.getId());
-//                        tDto.setName(teacher.getFirstName() + " " + teacher.getLastName());
-//                        return tDto;
-//                    }).toList();
-//
-//            dto.setTeacherNameDtos(teacherDtos);
-//
-//            if (group.getFilial() != null) {
-//                FilialNameDto filialDto = new FilialNameDto();
-//                filialDto.setId(group.getFilial().getId());
-//                filialDto.setName(group.getFilial().getName());
-//                dto.setFilialNameDto(filialDto);
-//            }
-//
-//            return dto;
-//        }).toList();
-//    }
+    private final TeacherSalaryPaymentRepo teacherSalaryPaymentRepo;
 
     @Transactional(readOnly = true)
     @Override
@@ -93,13 +37,13 @@ public class GroupServiceImpl implements GroupService{
 
         Page<Group> groups;
 
-        if (filialId == null || filialId.trim().isEmpty() || filialId.equalsIgnoreCase("all")) {
-            groups = groupRepo.findAll(pageable);
+        if (filialId == null || filialId.trim().isEmpty() || filialId.equalsIgnoreCase("all") || filialId.equalsIgnoreCase("null")) {
+            groups = groupRepo.findAllOrderByStatusAndName(pageable);
         } else {
             Filial filial = filialRepo.findById(UUID.fromString(filialId))
                     .orElseThrow(() -> new RuntimeException("Filial not found"));
 
-            groups = groupRepo.findByFilial(filial, pageable);
+            groups = groupRepo.findAllOrderByStatusAndName(filial, pageable);
         }
 
         return groups.map(group -> {
@@ -110,6 +54,7 @@ public class GroupServiceImpl implements GroupService{
             dto.setDayType(group.getDayType().toString());
             dto.setStartTime(group.getStartTime());
             dto.setEndTime(group.getEndTime());
+            dto.setStatus(group.isStatus());
 
             if (group.getRoom() != null) {
                 RoomResDto roomDto = new RoomResDto();
@@ -144,8 +89,6 @@ public class GroupServiceImpl implements GroupService{
         });
     }
 
-
-
     @Override
     public void createGroup(GroupDto groupDto) {
         Group newGroup = new Group();
@@ -153,6 +96,7 @@ public class GroupServiceImpl implements GroupService{
         newGroup.setDegree(groupDto.getDegree());
         newGroup.setStartTime(groupDto.getStartTime());
         newGroup.setEndTime(groupDto.getEndTime());
+        newGroup.setStatus(groupDto.isStatus());
 
         if(!groupDto.getDayType().equals("")) {
             newGroup.setDayType(DayType.valueOf(groupDto.getDayType()));
@@ -181,13 +125,17 @@ public class GroupServiceImpl implements GroupService{
 
 
         savedG.getTeachers().forEach(teacher -> {
+
+            // 1️⃣ Salary document yaratamiz
             TeacherSalary teacherSalary = new TeacherSalary();
-            teacherSalary.setGroup(savedG);
             teacherSalary.setTeacher(teacher);
+            teacherSalary.setGroup(savedG); // ✅ group salaryga bog‘landi
             teacherSalary.setSalaryDate(LocalDate.now());
-            teacherSalary.setPercentage(0);
-            teacherSalary.setTotalAmount(0);
+            teacherSalary.setPercentage(0); // Boshlang'ich foiz
+            teacherSalary.setTotalAmount(0); // Boshlang'ich summa
             teacherSalaryRepo.save(teacherSalary);
+
+            // Boshlang'ich 0 summalik to'lov yaratishga ehtiyoj qolmadi, chunki endi TeacherSalaryni o'zini ishlatsak yetarli
         });
 
     }
@@ -222,6 +170,7 @@ public class GroupServiceImpl implements GroupService{
         group.setDegree(dto.getDegree());
         group.setStartTime(dto.getStartTime());
         group.setEndTime(dto.getEndTime());
+        group.setStatus(dto.isStatus());
 
         if(!dto.getDayType().equals("")) {
             group.setDayType(DayType.valueOf(dto.getDayType()));
@@ -356,23 +305,33 @@ public class GroupServiceImpl implements GroupService{
         Group group = groupRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Group not found: " + id));
 
-        // Teacherlarni xotiradan tozalash
-        group.getTeachers().clear();
-
-        attendanceRepo.deleteAttendancesByGroup(group);
-
-
-        // Studentlarni GroupStudent orqali o'chirish
-        if (group.getGroupStudents() != null) {
-            for (GroupStudent gs : group.getGroupStudents()) {
-                groupStudentRepo.delete(gs); // DBdan o'chirish
-            }
-            group.getGroupStudents().clear(); // xotirada ham tozalash
-        }
-
-        groupRepo.delete(group); // endi xavfsiz o'chadi
+        group.setStatus(false);
+        groupRepo.save(group);
     }
 
+
+    @Override
+    @Transactional
+    public Page<StudentResDto> getStudentsPaginated(String filialId, String groupId, Pageable pageable) {
+        Role roleStudent = roleRepo.findByName("ROLE_STUDENT")
+                .orElseThrow(() -> new RuntimeException("Role ROLE_STUDENT not found"));
+
+        // Note: This logic assumes your userRepo has a method to find students with these filters.
+        // If groupId is present, we filter by group. If only filialId is present, we filter by filial.
+        // If neither, we return all students.
+        
+        // For this example, I'll show how to wrap the existing logic into a Page.
+        // In a real scenario, you should use: userRepo.findAllStudents(filialId, groupId, roleStudent, pageable)
+        
+        Page<StudentProjection> studentsPage = userRepo.findStudentsWithFilters(filialId, groupId, roleStudent.getId(), pageable);
+
+        return studentsPage.map(p -> new StudentResDto(
+                p.getFirstName(),
+                p.getLastName(),
+                p.getPhone(),
+                p.getId()
+        ));
+    }
 
     @Override
     @Transactional
@@ -386,6 +345,15 @@ public class GroupServiceImpl implements GroupService{
             studentResDtoList.add(studentResDto);
         }
         return studentResDtoList;
+    }
+
+    @Override
+    @Transactional
+    public void toggleStatus(UUID id) {
+        Group group = groupRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Group not found: " + id));
+        group.setStatus(!group.isStatus());
+        groupRepo.save(group);
     }
 
 }
